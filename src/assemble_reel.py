@@ -4,22 +4,24 @@ import sys
 
 def assemble_reel(image, video, output):
     cmd = [
-    "ffmpeg",
-    "-i", video,
-    "-i", image,
-    "-filter_complex",
-    "[0:v]crop='min(iw,ih)':'min(iw,ih)',scale=900:-1[vid];"
-    "[1:v]scale=900:-1[img];"
-    "[img][vid]vstack=inputs=2[stacked];"
-    "color=white:s=1080x1920:d=5[bg];"
-    "[bg][stacked]overlay=(W-w)/2:(H-h)/2[final]",
-    "-map", "[final]",
-    "-map", "0:a?",
-    "-c:v", "libx264",
-    "-c:a", "aac",
-    "-b:a", "192k",
-    "-shortest",
-    "-y", output
+        "ffmpeg",
+        "-i", video,
+        "-i", image,
+        "-filter_complex",
+        "[0:v]crop='min(iw,ih)':'min(iw,ih)',scale=720:-1[vid];"
+        "[1:v]scale=720:-1[img];"
+        "[img][vid]vstack=inputs=2[stacked];"
+        "color=white:s=720x1280:d=5[bg];"
+        "[bg][stacked]overlay=(W-w)/2:(H-h)/2[final]",
+        "-map", "[final]",
+        "-map", "0:a?",
+        "-c:v", "libx264",
+        "-c:a", "aac",
+        "-b:a", "128k",
+        "-preset", "veryfast",
+        "-crf", "28",
+        "-shortest",
+        "-y", output
     ]
     subprocess.run(cmd, check=True)
 
