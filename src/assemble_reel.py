@@ -8,10 +8,10 @@ def assemble_reel(image, video, output):
         "-i", video,
         "-i", image,
         "-filter_complex",
-        "[0:v]crop='min(iw,ih)':'min(iw,ih)',scale=720:-1[vid];"
-        "[1:v]scale=720:-1[img];"
+        "[0:v]crop='min(iw,ih)':'min(iw,ih)',scale=900:-1[vid];"
+        "[1:v]scale=900:-1[img];"
         "[img][vid]vstack=inputs=2[stacked];"
-        "color=white:s=720x1280:d=5[bg];"
+        "color=white:s=1080x1920:d=5[bg];"
         "[bg][stacked]overlay=(W-w)/2:(H-h)/2[final]",
         "-map", "[final]",
         "-map", "0:a?",
