@@ -1,0 +1,6 @@
+flask
+pika-sdk
+yt-dlp
+opencv-python
+pillow
+numpy
