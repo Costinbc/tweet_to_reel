@@ -8,6 +8,12 @@ template_dir = os.path.join(base_dir, "templates")
 downloads_dir = os.path.join(base_dir, "downloads")
 results_dir = os.path.join(base_dir, "results")
 
+print("RUNNING FROM:", os.getcwd())
+print("BASE DIR:", base_dir)
+
+os.makedirs(downloads_dir, exist_ok=True)
+os.makedirs(results_dir, exist_ok=True)
+
 app = Flask(__name__, template_folder=template_dir)
 
 @app.route("/", methods=["GET", "POST"])
