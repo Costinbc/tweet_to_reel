@@ -1,30 +1,66 @@
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, render_template, send_file, redirect, url_for
 import subprocess
 import os
 import uuid
 
-app = Flask(__name__)
+base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+template_dir = os.path.join(base_dir, "templates")
+downloads_dir = os.path.join(base_dir, "downloads")
+results_dir = os.path.join(base_dir, "results")
 
-@app.route("/generate", methods=["POST"])
-def generate():
-    tweet_url = request.form.get("url")
-    if not tweet_url:
-        return jsonify({"error": "Missing tweet URL"}), 400
+app = Flask(__name__, template_folder=template_dir)
 
-    tweet_id = tweet_url.split("/")[-1]
-    job_id = str(uuid.uuid4())[:8]
+@app.route("/", methods=["GET", "POST"])
+def index():
+    if request.method == "POST":
+        tweet_url = request.form.get("url")
+        if not tweet_url:
+            return render_template("index.html", error="Please enter a tweet URL")
 
-    try:
-        subprocess.run(["python", "src/screenshot.py", tweet_url], check=True)
-        subprocess.run(["python", "src/extract_tweet_text.py", "tweet", f"downloads/{tweet_id}.png", f"downloads/{tweet_id}_cropped.png"], check=True)
-        subprocess.run(["python", "src/extract_tweet_text.py", "author_and_text_only", f"downloads/{tweet_id}_cropped.png", f"results/{tweet_id}_final.png"], check=True)
-        subprocess.run(["python", "src/video_dl.py", tweet_url], check=True)
-        subprocess.run(["python", "src/assemble_reel.py", f"results/{tweet_id}_final.png", "tweet_video.mp4", f"results/{job_id}_reel.mp4"], check=True)
+        tweet_id = tweet_url.split("/")[-1]
+        job_id = str(uuid.uuid4())[:8]
 
-        return send_file(f"results/{job_id}_reel.mp4", as_attachment=True)
+        try:
+            subprocess.run(["python", os.path.join("src", "screenshot.py"), tweet_url], check=True)
 
-    except subprocess.CalledProcessError as e:
-        return jsonify({"error": str(e)}), 500
+            subprocess.run([
+                "python", os.path.join("src", "extract_tweet_text.py"),
+                "tweet",
+                os.path.join(downloads_dir, f"{tweet_id}.png"),
+                os.path.join(downloads_dir, f"{tweet_id}_cropped.png")
+            ], check=True)
+
+            subprocess.run([
+                "python", os.path.join("src", "extract_tweet_text.py"),
+                "author_and_text_only",
+                os.path.join(downloads_dir, f"{tweet_id}_cropped.png"),
+                os.path.join(results_dir, f"{tweet_id}_final.png")
+            ], check=True)
+
+            subprocess.run(["python", os.path.join("src", "video_dl.py"), tweet_url], check=True)
+
+            subprocess.run([
+                "python", os.path.join("src", "assemble_reel.py"),
+                os.path.join(results_dir, f"{tweet_id}_final.png"),
+                os.path.join(downloads_dir, f"{tweet_id}_video.mp4"),
+                os.path.join(results_dir, f"{job_id}_reel.mp4")
+            ], check=True)
+
+            return redirect(url_for("download", filename=f"{job_id}_reel.mp4"))
+
+        except subprocess.CalledProcessError as e:
+            return render_template("index.html", error="Something went wrong during processing.")
+
+    return render_template("index.html")
+
+@app.route("/download/<filename>")
+def download(filename):
+    path = os.path.join(results_dir, filename)
+    return send_file(path, as_attachment=True)
+
+@app.route("/health")
+def health():
+    return "✅ App is running!"
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))

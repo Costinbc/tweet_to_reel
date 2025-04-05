@@ -1,6 +1,8 @@
 import pika_sdk
 import sys
 import os
+from dotenv import load_dotenv
+load_dotenv()
 
 def download_tweet_image(link, id):
     ps = pika_sdk.PikaSdk(os.environ.get("PIKA_API_KEY"))
