@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Your Reel is Ready</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+</head>
+<body style="text-align: center; padding: 2em;">
+  <h1>Your Reel is Ready</h1>
+  <video controls playsinline style="max-width: 100%; height: auto;">
+    <source src="{{ url_for('download', filename=filename) }}" type="video/mp4">
+  </video>
+  <p>🟢 Tap and hold the video, then choose <strong>"Save Video"</strong> to add it to your Photos app.</p>
+</body>
+</html>
