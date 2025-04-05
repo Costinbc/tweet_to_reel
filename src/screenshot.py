@@ -3,7 +3,7 @@ import sys
 import os
 
 def download_tweet_image(link, id):
-    ps = pika_sdk.PikaSdk('sk-2oi0712sfdytr9as736jr39fzns0lq')
+    ps = pika_sdk.PikaSdk(os.environ.get("PIKA_API_KEY"))
 
     response = ps.generate_image_from_template('tweet-image', {
         "tweetUrl": link,
