@@ -52,7 +52,7 @@ def index():
                 os.path.join(results_dir, f"{job_id}_reel.mp4")
             ], check=True)
 
-            return redirect(url_for("download", filename=f"{job_id}_reel.mp4"))
+            return render_template("download.html", filename=f"{job_id}_reel.mp4")
 
         except subprocess.CalledProcessError as e:
             return render_template("index.html", error="Something went wrong during processing.")
