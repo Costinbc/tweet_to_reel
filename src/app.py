@@ -35,15 +35,7 @@ def index():
                 os.path.join(downloads_dir, f"{tweet_id}.png"),
                 os.path.join(results_dir, f"{tweet_id}_final.png")
             ], check=True)
-            
 
-            # Not needed anymore
-            # subprocess.run([
-            #     "python", os.path.join("src", "extract_tweet_text.py"),
-            #     "author_and_text_only",
-            #     os.path.join(downloads_dir, f"{tweet_id}_cropped.png"),
-            #     os.path.join(results_dir, f"{tweet_id}_final.png")
-            # ], check=True)
 
             subprocess.run(["python", os.path.join("src", "video_dl.py"), tweet_url], check=True)
 
