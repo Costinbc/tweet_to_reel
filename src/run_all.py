@@ -24,7 +24,7 @@ def run():
     os.makedirs(downloads_dir, exist_ok=True)
     os.makedirs(results_dir, exist_ok=True)
 
-    screenshot_py = os.path.join(src_dir, "screenshot.py")
+    screenshot_py = os.path.join(src_dir, "screenshot_ors.py")
     extract_py = os.path.join(src_dir, "extract_tweet_text.py")
     video_dl_py = os.path.join(src_dir, "video_dl.py")
     assemble_py = os.path.join(src_dir, "assemble_reel.py")
@@ -40,11 +40,14 @@ def run():
 
     print("💡 Verifying image exists:", os.path.exists(img_raw), "|", img_raw)
 
-    print("✂️ Cropping tweet container...")
-    subprocess.run(["python", extract_py, "tweet", img_raw, img_cropped], check=True)
+    # print("✂️ Cropping tweet container...")
+    # subprocess.run(["python", extract_py, "tweet", img_raw, img_cropped], check=True)
+
+    # print("✂️ Extracting only tweet text...")
+    # subprocess.run(["python", extract_py, "author_and_text_only", img_cropped, img_final], check=True)
 
     print("✂️ Extracting only tweet text...")
-    subprocess.run(["python", extract_py, "author_and_text_only", img_cropped, img_final], check=True)
+    subprocess.run(["python", extract_py, "tweet_card", img_raw, img_final], check=True)
 
     print(f"✅ Done! Tweet text saved as {img_final}")
 
