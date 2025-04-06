@@ -33,7 +33,7 @@ def index():
                 "python", os.path.join("src", "extract_tweet_text.py"),
                 "tweet_card",
                 os.path.join(downloads_dir, f"{tweet_id}.png"),
-                os.path.join(downloads_dir, f"{tweet_id}_cropped.png")
+                os.path.join(results_dir, f"{tweet_id}_final.png")
             ], check=True)
             
 
