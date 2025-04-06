@@ -69,13 +69,9 @@
     }
     .progress-bar-fill {
       height: 100%;
-      width: 100%;
-      background: linear-gradient(270deg, #1da1f2, #0d8ddb);
-      animation: loading 2s infinite;
-    }
-    @keyframes loading {
-      0% { transform: translateX(-100%); }
-      100% { transform: translateX(100%); }
+      width: 0%;
+      background-color: #1da1f2;
+      transition: width 0.4s ease;
     }
     footer {
       margin-top: 2rem;
@@ -90,16 +86,34 @@
     {% if error %}
       <div class="error">{{ error }}</div>
     {% endif %}
-    <form method="POST">
+    <form method="POST" onsubmit="startProgress()">
       <input type="text" name="url" placeholder="Enter tweet URL" required />
       <button type="submit">Generate Reel</button>
     </form>
     <div class="progress-bar">
-      <div class="progress-bar-fill"></div>
+      <div id="progress-bar-fill" class="progress-bar-fill"></div>
     </div>
   </div>
   <footer>
     &copy; {{ year or "2025" }} Tweet to Reel by You. All rights reserved.
   </footer>
+  <script>
+    function startProgress() {
+      setTimeout(() => pollProgress(), 300);
+    }
+
+    function pollProgress() {
+      const fill = document.getElementById('progress-bar-fill');
+      fetch('/progress')
+        .then(res => res.json())
+        .then(data => {
+          fill.style.width = data.percent + '%';
+          if (data.percent < 100) {
+            setTimeout(pollProgress, 500);
+          }
+        })
+        .catch(() => setTimeout(pollProgress, 1000));
+    }
+  </script>
 </body>
 </html>

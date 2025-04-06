@@ -1,4 +1,6 @@
-from flask import Flask, request, render_template, send_file, redirect, url_for
+import json
+
+from flask import Flask, request, render_template, send_file, redirect, url_for, jsonify
 import subprocess
 import os
 import uuid
@@ -29,6 +31,8 @@ def index():
 
         try:
             subprocess.run(["python", os.path.join("src", "screenshot_ors.py"), tweet_url], check=True)
+            with open("progress.json", "w") as f:
+                json.dump({"percent": 10}, f)
 
             subprocess.run([
                 "python", os.path.join("src", "extract_tweet_text.py"),
@@ -37,7 +41,12 @@ def index():
                 os.path.join(results_dir, f"{tweet_id}_final.png")
             ], check=True)
 
+            with open("progress.json", "w") as f:
+                json.dump({"percent": 25}, f)
+
             subprocess.run(["python", os.path.join("src", "video_dl.py"), tweet_url], check=True)
+            with open("progress.json", "w") as f:
+                json.dump({"percent": 50}, f)
 
             subprocess.run([
                 "python", os.path.join("src", "assemble_reel.py"),
@@ -45,6 +54,8 @@ def index():
                 os.path.join(downloads_dir, f"{tweet_id}_video.mp4"),
                 os.path.join(results_dir, f"{job_id}_reel.mp4")
             ], check=True)
+            with open("progress.json", "w") as f:
+                json.dump({"percent": 100}, f)
 
             return redirect(url_for("result", job_id=job_id))
 
@@ -66,6 +77,12 @@ def download(filename):
 @app.route("/health")
 def health():
     return "✅ App is running!"
+
+@app.route("/progress")
+def progress():
+    import json
+    with open("progress.json", "r") as f:
+        return jsonify(json.load(f))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
