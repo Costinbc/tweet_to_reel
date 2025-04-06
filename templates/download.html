@@ -6,9 +6,19 @@
 </head>
 <body style="text-align: center; padding: 2em;">
   <h1>Your Reel is Ready</h1>
-  <video controls playsinline style="max-width: 100%; height: auto;">
+
+  <video controls playsinline style="max-width: 100%; height: auto; margin-bottom: 20px;">
     <source src="{{ url_for('download', filename=filename) }}" type="video/mp4">
+    Your browser does not support the video tag.
   </video>
-  <p>🟢 Tap and hold the video, then choose <strong>"Save Video"</strong> to add it to your Photos app.</p>
+
+  <p>
+    👉 <a href="{{ url_for('download', filename=filename) }}" download target="_blank" style="font-size: 18px;">
+      Click here to download and save the video
+    </a>
+  </p>
+
+  <p>On iPhone: tap this link, then choose <strong>"Download"</strong>.<br>
+  Once downloaded, open it from the <strong>Downloads</strong> folder in Safari and use the share icon to <strong>Save Video to Photos</strong>.</p>
 </body>
 </html>
