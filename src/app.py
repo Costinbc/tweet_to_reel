@@ -14,7 +14,8 @@ print("BASE DIR:", base_dir)
 os.makedirs(downloads_dir, exist_ok=True)
 os.makedirs(results_dir, exist_ok=True)
 
-app = Flask(__name__, template_folder=template_dir)
+app = Flask(__name__, template_folder=template_dir, static_folder=os.path.join(base_dir, "static"))
+
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -36,7 +37,6 @@ def index():
                 os.path.join(results_dir, f"{tweet_id}_final.png")
             ], check=True)
 
-
             subprocess.run(["python", os.path.join("src", "video_dl.py"), tweet_url], check=True)
 
             subprocess.run([
@@ -46,12 +46,17 @@ def index():
                 os.path.join(results_dir, f"{job_id}_reel.mp4")
             ], check=True)
 
-            return render_template("download.html", filename=f"{job_id}_reel.mp4")
+            return redirect(url_for("result", job_id=job_id))
 
         except subprocess.CalledProcessError as e:
             return render_template("index.html", error="Something went wrong during processing.")
 
     return render_template("index.html")
+
+@app.route("/result/<job_id>")
+def result(job_id):
+    filename = f"{job_id}_reel.mp4"
+    return render_template("download.html", filename=filename)
 
 @app.route("/download/<filename>")
 def download(filename):
