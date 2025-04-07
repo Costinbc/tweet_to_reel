@@ -31,7 +31,7 @@ def index():
         job_id = str(uuid.uuid4())[:8]
 
         try:
-            time = datetime.datetime.now()
+            start_time = datetime.datetime.now()
             subprocess.run(["python", os.path.join("src", "screenshot_ors.py"), tweet_url], check=True)
             with open("progress.json", "w") as f:
                 json.dump({"percent": 10}, f)
@@ -59,7 +59,8 @@ def index():
             with open("progress.json", "w") as f:
                 json.dump({"percent": 100}, f)
 
-            print(f"Time taken {datetime.datetime.now() - time}")
+            duration = datetime.datetime.now() - start_time
+            print(f"Time taken to process tweet to reel: {duration}", flush=True)
 
             return redirect(url_for("result", job_id=job_id))
 
