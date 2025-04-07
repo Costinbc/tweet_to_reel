@@ -41,15 +41,9 @@ def index():
                 check=True
             )
 
-            time_1 = datetime.datetime.now()
-            print(f"Time taken to download video: {time_1 - start_time}", flush=True)
-
             subprocess.run(["python", os.path.join("src", "screenshot_ors.py"), tweet_url], check=True)
             with open("progress.json", "w") as f:
                 json.dump({"percent": 10}, f)
-
-            time_2 = datetime.datetime.now()
-            print(f"Time taken to download screenshot: {time_2 - time_1}", flush=True)
 
             subprocess.run([
                 "python", os.path.join("src", "extract_tweet_text.py"),
@@ -58,18 +52,12 @@ def index():
                 os.path.join(results_dir, f"{tweet_id}_final.png")
             ], check=True)
 
-            time_3 = datetime.datetime.now()
-            print(f"Time taken to extract tweet text: {time_3 - time_2}", flush=True)
-
             with open("progress.json", "w") as f:
                 json.dump({"percent": 25}, f)
 
             video_download.result()
             with open("progress.json", "w") as f:
                 json.dump({"percent": 50}, f)
-
-            time_4 = datetime.datetime.now()
-            print(f"Time taken to download video: {time_4 - time_3}", flush=True)
 
             subprocess.run([
                 "python", os.path.join("src", "assemble_reel.py"),
@@ -80,7 +68,7 @@ def index():
             with open("progress.json", "w") as f:
                 json.dump({"percent": 100}, f)
 
-            duration = datetime.datetime.now() - time_4
+            duration = datetime.datetime.now() - start_time
             print(f"Time taken to process tweet to reel: {duration}", flush=True)
 
             return redirect(url_for("result", job_id=job_id))
