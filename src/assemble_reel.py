@@ -20,6 +20,7 @@ def assemble_reel(image, video, output):
         "-b:a", "128k",
         "-preset", "veryfast",
         "-crf", "28",
+        "-threads", "2",
         "-shortest",
         "-y", output
     ]
