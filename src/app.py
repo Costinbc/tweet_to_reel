@@ -4,6 +4,7 @@ from flask import Flask, request, render_template, send_file, redirect, url_for,
 import subprocess
 import os
 import uuid
+import datetime
 
 base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 template_dir = os.path.join(base_dir, "templates")
@@ -30,6 +31,7 @@ def index():
         job_id = str(uuid.uuid4())[:8]
 
         try:
+            time = datetime.datetime.now()
             subprocess.run(["python", os.path.join("src", "screenshot_ors.py"), tweet_url], check=True)
             with open("progress.json", "w") as f:
                 json.dump({"percent": 10}, f)
@@ -56,6 +58,8 @@ def index():
             ], check=True)
             with open("progress.json", "w") as f:
                 json.dump({"percent": 100}, f)
+
+            print(f"Time taken {datetime.datetime.now() - time}")
 
             return redirect(url_for("result", job_id=job_id))
 
