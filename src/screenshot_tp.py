@@ -4,9 +4,15 @@ import requests
 from dotenv import load_dotenv
 load_dotenv()
 
-def run(tweet_url: str, output_path: str):
+def run(tweet_url: str, output_path: str, type: str):
     api_key = os.environ.get("TWEET_PIK_API_KEY")
     api_url = "https://tweetpik.com/api/v2/images"
+
+    display_embeds = False
+    dimension = "instagramFeed"
+    if type == "photo":
+        dimension = "instagramStories"
+        display_embeds = True
 
     headers = {
         "Content-Type": "application/json",
@@ -15,8 +21,9 @@ def run(tweet_url: str, output_path: str):
 
     payload = {
         "url": tweet_url,
+        "dimension": dimension,
         "displayMetrics": False,
-        "displayEmbeds": False,
+        "displayEmbeds": display_embeds,
         "contentWidth": 120,
         "displayVerified": True
     }
@@ -47,11 +54,12 @@ def run(tweet_url: str, output_path: str):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print("Usage: python screenshot_api.py <Twitter URL> <Output Path>")
+    if len(sys.argv) != 4:
+        print("Usage: python screenshot_api.py <screenshot_type> <Twitter URL> <Output Path>")
         sys.exit(1)
 
-    tweet_url = sys.argv[1]
-    output_path = sys.argv[2]
+    type = sys.argv[1]
+    tweet_url = sys.argv[2]
+    output_path = sys.argv[3]
 
-    run(tweet_url, output_path)
+    run(tweet_url, output_path, type)

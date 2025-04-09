@@ -33,7 +33,7 @@
       font-size: 2rem;
       color: #333;
     }
-    input[type="text"] {
+    input[type="text"], select {
       width: 100%;
       padding: 12px;
       font-size: 16px;
@@ -88,14 +88,18 @@
     {% endif %}
     <form method="POST" onsubmit="startProgress()">
       <input type="text" name="url" placeholder="Enter tweet URL" required />
-      <button type="submit">Generate Reel</button>
+      <select name="mode" required>
+        <option value="reel">Reel</option>
+        <option value="photo">Photo</option>
+      </select>
+      <button type="submit">Generate</button>
     </form>
     <div class="progress-bar">
       <div id="progress-bar-fill" class="progress-bar-fill"></div>
     </div>
   </div>
   <footer>
-    &copy; {{ year or "2025" }} Tweet to Reel by You. All rights reserved.
+    &copy; {{ year or "2025" }} Tweet to Reel by Costin. All rights reserved.
   </footer>
   <script>
     function startProgress() {

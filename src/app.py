@@ -20,7 +20,7 @@ os.makedirs(downloads_dir, exist_ok=True)
 os.makedirs(results_dir, exist_ok=True)
 
 screenshot_py = os.path.join(src_dir, "screenshot_tp.py")
-extract_py = os.path.join(src_dir, "extract_tweet_text.py")
+crop_py = os.path.join(src_dir, "crop_tweet.py")
 video_dl_py = os.path.join(src_dir, "video_dl.py")
 assemble_py = os.path.join(src_dir, "assemble_reel.py")
 
@@ -31,6 +31,7 @@ app = Flask(__name__, template_folder=template_dir, static_folder=os.path.join(b
 def index():
     if request.method == "POST":
         tweet_url = request.form.get("url")
+        mode = request.form.get("mode")
         if not tweet_url:
             return render_template("index.html", error="Please enter a tweet URL")
 
@@ -38,61 +39,84 @@ def index():
         job_id = str(uuid.uuid4())[:8]
 
         img_raw = os.path.join(downloads_dir, f"{tweet_id}.png")
-        img_final = os.path.join(results_dir, f"{tweet_id}_final.png")
+        img_final = os.path.join(results_dir, f"{job_id}_photo.png")
         video_path = os.path.join(downloads_dir, f"{tweet_id}_video.mp4")
         reel_output = os.path.join(results_dir, f"{job_id}_reel.mp4")
 
         try:
             start_time = datetime.datetime.now()
 
-            executor = ThreadPoolExecutor(max_workers=1)
-            video_download = executor.submit(
-                subprocess.run,
-                ["python", video_dl_py, tweet_url],
-                check=True
-            )
+            if mode == "reel":
+                executor = ThreadPoolExecutor(max_workers=1)
+                video_download = executor.submit(
+                    subprocess.run,
+                    ["python", video_dl_py, tweet_url],
+                    check=True
+                )
 
-            subprocess.run(["python", screenshot_py, tweet_url, img_raw], check=True)
-            with open("progress.json", "w") as f:
-                json.dump({"percent": 10}, f)
+                subprocess.run(["python", screenshot_py, tweet_url, img_raw], check=True)
+                with open("progress.json", "w") as f:
+                    json.dump({"percent": 10}, f)
 
-            subprocess.run([
-                "python", extract_py,
-                "crop_tweet",
-                img_raw,
-                img_final
-            ], check=True)
+                subprocess.run([
+                    "python", crop_py,
+                    "crop_tweet",
+                    img_raw,
+                    img_final
+                ], check=True)
 
-            with open("progress.json", "w") as f:
-                json.dump({"percent": 25}, f)
+                with open("progress.json", "w") as f:
+                    json.dump({"percent": 25}, f)
 
-            video_download.result()
-            with open("progress.json", "w") as f:
-                json.dump({"percent": 50}, f)
+                video_download.result()
+                with open("progress.json", "w") as f:
+                    json.dump({"percent": 50}, f)
 
-            subprocess.run([
-                "python", assemble_py,
-                img_final,
-                video_path,
-                reel_output
-            ], check=True)
-            with open("progress.json", "w") as f:
-                json.dump({"percent": 100}, f)
+                subprocess.run([
+                    "python", assemble_py,
+                    img_final,
+                    video_path,
+                    reel_output
+                ], check=True)
+                with open("progress.json", "w") as f:
+                    json.dump({"percent": 100}, f)
 
-            duration = datetime.datetime.now() - start_time
-            print(f"Time taken to process tweet to reel: {duration}", flush=True)
+                duration = datetime.datetime.now() - start_time
+                print(f"Time taken to process tweet to reel: {duration}", flush=True)
 
-            return redirect(url_for("result", job_id=job_id))
+                return redirect(url_for("result_reel", job_id=job_id))
+
+            elif mode == "photo":
+                subprocess.run(["python", screenshot_py, "photo", tweet_url, img_raw], check=True)
+                with open("progress.json", "w") as f:
+                    json.dump({"percent": 10}, f)
+
+                subprocess.run([
+                    "python", crop_py,
+                    "crop_photo",
+                    img_raw,
+                    img_final
+                ], check=True)
+                with open("progress.json", "w") as f:
+                    json.dump({"percent": 100}, f)
+
+                return redirect(url_for("result_photo", job_id=job_id))
 
         except subprocess.CalledProcessError as e:
             return render_template("index.html", error="Something went wrong during processing.")
 
+
     return render_template("index.html")
 
-@app.route("/result/<job_id>")
+@app.route("/result_reel/<job_id>")
 def result(job_id):
     filename = f"{job_id}_reel.mp4"
-    return render_template("download.html", filename=filename)
+    return render_template("download_reel.html", filename=filename)
+
+@app.route("/result_photo/<job_id>")
+def result_photo(job_id):
+    filename = f"{job_id}_photo.png"
+    return render_template("download_photo.html", filename=filename)
 
 @app.route("/download/<filename>")
 def download(filename):
