@@ -24,10 +24,11 @@ def run():
     os.makedirs(downloads_dir, exist_ok=True)
     os.makedirs(results_dir, exist_ok=True)
 
-    screenshot_py = os.path.join(src_dir, "screenshot_ors.py")
+    screenshot_py = os.path.join(src_dir, "screenshot_tp.py")
     extract_py = os.path.join(src_dir, "extract_tweet_text.py")
     video_dl_py = os.path.join(src_dir, "video_dl.py")
     assemble_py = os.path.join(src_dir, "assemble_reel.py")
+    # screenshot_sh = os.path.join(src_dir, "screenshot.sh")
 
     img_raw = os.path.join(downloads_dir, f"{tweet_id}.png")
     img_cropped = os.path.join(downloads_dir, f"{tweet_id}_cropped.png")
@@ -35,20 +36,22 @@ def run():
     video_path = os.path.join(downloads_dir, f"{tweet_id}_video.mp4")
     reel_output = os.path.join(results_dir, f"{tweet_id}_reel.mp4")
 
-    print("▶️ Downloading tweet screenshot...")
-    subprocess.run(["python", screenshot_py, tweet_url], check=True)
+    # Old API
+    # print("▶️ Downloading tweet screenshot...")
+    # subprocess.run(["python", screenshot_py, tweet_url], check=True)
 
+    # print("💡 Verifying image exists:", os.path.exists(img_raw), "|", img_raw)
+
+    print("▶️ Running screenshot.sh to download tweet screenshot...")
+    subprocess.run(["python", screenshot_py, tweet_url, img_raw], check=True)
     print("💡 Verifying image exists:", os.path.exists(img_raw), "|", img_raw)
 
-    # print("✂️ Cropping tweet container...")
-    # subprocess.run(["python", extract_py, "tweet", img_raw, img_cropped], check=True)
-
+    # Old API
     # print("✂️ Extracting only tweet text...")
-    # subprocess.run(["python", extract_py, "author_and_text_only", img_cropped, img_final], check=True)
+    # subprocess.run(["python", extract_py, "tweet_card", img_raw, img_final], check=True)
 
-    print("✂️ Extracting only tweet text...")
-    subprocess.run(["python", extract_py, "tweet_card", img_raw, img_final], check=True)
-
+    print("✂️ Cropping tweet...")
+    subprocess.run(["python", extract_py, "crop_tweet", img_raw, img_final], check=True)
     print(f"✅ Done! Tweet text saved as {img_final}")
 
     print("📽 Downloading tweet video...")
