@@ -54,7 +54,7 @@ def index():
                     check=True
                 )
 
-                subprocess.run(["python", screenshot_py, tweet_url, img_raw], check=True)
+                subprocess.run(["python", screenshot_py, "video", tweet_url, img_raw], check=True)
                 with open("progress.json", "w") as f:
                     json.dump({"percent": 10}, f)
 
@@ -84,7 +84,7 @@ def index():
                 duration = datetime.datetime.now() - start_time
                 print(f"Time taken to process tweet to reel: {duration}", flush=True)
 
-                return redirect(url_for("result_reel", job_id=job_id))
+                return redirect(url_for("reel_result", job_id=job_id))
 
             elif mode == "photo":
                 subprocess.run(["python", screenshot_py, "photo", tweet_url, img_raw], check=True)
@@ -100,7 +100,7 @@ def index():
                 with open("progress.json", "w") as f:
                     json.dump({"percent": 100}, f)
 
-                return redirect(url_for("result_photo", job_id=job_id))
+                return redirect(url_for("photo_result", job_id=job_id))
 
         except subprocess.CalledProcessError as e:
             return render_template("index.html", error="Something went wrong during processing.")
@@ -108,12 +108,12 @@ def index():
 
     return render_template("index.html")
 
-@app.route("/result_reel/<job_id>")
+@app.route("/result/reel/<job_id>", endpoint="reel_result")
 def result(job_id):
     filename = f"{job_id}_reel.mp4"
     return render_template("download_reel.html", filename=filename)
 
-@app.route("/result_photo/<job_id>")
+@app.route("/result/photo/<job_id>", endpoint="photo_result")
 def result_photo(job_id):
     filename = f"{job_id}_photo.png"
     return render_template("download_photo.html", filename=filename)
