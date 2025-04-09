@@ -11,12 +11,18 @@ base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 template_dir = os.path.join(base_dir, "templates")
 downloads_dir = os.path.join(base_dir, "downloads")
 results_dir = os.path.join(base_dir, "results")
+src_dir = os.path.join(base_dir, "src")
 
 print("RUNNING FROM:", os.getcwd())
 print("BASE DIR:", base_dir)
 
 os.makedirs(downloads_dir, exist_ok=True)
 os.makedirs(results_dir, exist_ok=True)
+
+screenshot_py = os.path.join(src_dir, "screenshot_tp.py")
+extract_py = os.path.join(src_dir, "extract_tweet_text.py")
+video_dl_py = os.path.join(src_dir, "video_dl.py")
+assemble_py = os.path.join(src_dir, "assemble_reel.py")
 
 app = Flask(__name__, template_folder=template_dir, static_folder=os.path.join(base_dir, "static"))
 
@@ -31,25 +37,30 @@ def index():
         tweet_id = tweet_url.split("/")[-1]
         job_id = str(uuid.uuid4())[:8]
 
+        img_raw = os.path.join(downloads_dir, f"{tweet_id}.png")
+        img_final = os.path.join(results_dir, f"{tweet_id}_final.png")
+        video_path = os.path.join(downloads_dir, f"{tweet_id}_video.mp4")
+        reel_output = os.path.join(results_dir, f"{job_id}_reel.mp4")
+
         try:
             start_time = datetime.datetime.now()
 
             executor = ThreadPoolExecutor(max_workers=1)
             video_download = executor.submit(
                 subprocess.run,
-                ["python", os.path.join("src", "video_dl.py"), tweet_url],
+                ["python", video_dl_py, tweet_url],
                 check=True
             )
 
-            subprocess.run(["python", os.path.join("src", "screenshot_ors.py"), tweet_url], check=True)
+            subprocess.run(["python", screenshot_py, tweet_url, img_raw], check=True)
             with open("progress.json", "w") as f:
                 json.dump({"percent": 10}, f)
 
             subprocess.run([
-                "python", os.path.join("src", "extract_tweet_text.py"),
-                "tweet_card",
-                os.path.join(downloads_dir, f"{tweet_id}.png"),
-                os.path.join(results_dir, f"{tweet_id}_final.png")
+                "python", extract_py,
+                "crop_tweet",
+                img_raw,
+                img_final
             ], check=True)
 
             with open("progress.json", "w") as f:
@@ -60,10 +71,10 @@ def index():
                 json.dump({"percent": 50}, f)
 
             subprocess.run([
-                "python", os.path.join("src", "assemble_reel.py"),
-                os.path.join(results_dir, f"{tweet_id}_final.png"),
-                os.path.join(downloads_dir, f"{tweet_id}_video.mp4"),
-                os.path.join(results_dir, f"{job_id}_reel.mp4")
+                "python", assemble_py,
+                img_final,
+                video_path,
+                reel_output
             ], check=True)
             with open("progress.json", "w") as f:
                 json.dump({"percent": 100}, f)

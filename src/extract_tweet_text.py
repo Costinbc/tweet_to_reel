@@ -4,20 +4,34 @@ import os
 from PIL import Image
 import sys
 
-# Currently not used
-def crop_tweet(input_path, output_path=None):
+
+def crop_api_watermark(input_path, output_path=None):
     print(f"🧪 Reading image from: {input_path}")
     image = cv2.imread(input_path)
     if image is None:
         print("❌ OpenCV failed to read the image.")
         raise ValueError(f"Could not open image at {input_path}")
 
-    x0 = max(image.shape[1] // 2 - 400, 0)
-    x1 = min(image.shape[1] // 2 + 400, image.shape[1])
+    height, width = image.shape[:2]
 
-    cropped = image[0:image.shape[0], x0:x1]
+    # Crop everything besides the top 20% of the image
+    y1 = int(height * 0.2)
+    y2 = int(height * 0.8)
+    cropped = image[y1:y2, 0:width]
+
+    if output_path is None:
+        base_name = os.path.splitext(input_path)[0]
+        output_path = f"{base_name}_cropped.jpg"
+
     cv2.imwrite(output_path, cropped)
     return output_path
+
+def crop_tweet(input_path, output_path=None):
+    base_name = os.path.splitext(input_path)[0]
+    output_temp = f"{base_name}_cropped.png" 
+
+    crop_api_watermark(input_path, output_temp)
+    crop_tweet_text(output_temp, output_path)
 
 # Currently not used
 def crop_tweet_author_and_text_only(input_path, output_path=None):
@@ -95,6 +109,37 @@ def extract_tweet_card_with_alpha(input_path, output_path=None):
     else:
         raise ValueError("Could not find white tweet card in the image")
 
+def crop_tweet_text(input_path, output_path=None):
+    img = Image.open(input_path)
+    
+    img_array = np.array(img)
+    
+    is_content = np.sum(img_array < 240, axis=2) > 0
+
+    rows_with_content = np.where(np.any(is_content, axis=1))[0]
+    cols_with_content = np.where(np.any(is_content, axis=0))[0]
+    
+    if len(rows_with_content) == 0 or len(cols_with_content) == 0:
+        print("No content detected in the image.")
+        return input_path
+    
+    padding = 10  # Padding around the content
+    top = max(0, rows_with_content[0] - padding)
+    bottom = min(img_array.shape[0], rows_with_content[-1] + padding + 1)
+    left = max(0, cols_with_content[0] - padding)
+    right = min(img_array.shape[1], cols_with_content[-1] + padding + 1)
+    
+    cropped_img = img.crop((left, top, right, bottom))
+    
+    if output_path is None:
+        filename, ext = os.path.splitext(input_path)
+        output_path = f"{filename}_cropped{ext}"
+    
+    cropped_img.save(output_path)
+    print(f"Cropped image saved to: {output_path}")
+    
+    return output_path
+
 
 def extract_tweet_card(input_path, output_path=None):
     img = cv2.imread(input_path)
@@ -150,7 +195,7 @@ if __name__ == "__main__":
     input_image_path = os.path.abspath(sys.argv[2])
     output_image_path = os.path.abspath(sys.argv[3]) if len(sys.argv) > 3 else None
 
-    if crop_action == "tweet":
+    if crop_action == "crop_tweet":
         crop_tweet(input_image_path, output_image_path)
     elif crop_action == "author_and_text_only":
         crop_tweet_author_and_text_only(input_image_path, output_image_path)
@@ -158,6 +203,10 @@ if __name__ == "__main__":
         extract_tweet_card(input_image_path, output_image_path)
     elif crop_action == "tweet_card_alpha":
         extract_tweet_card_with_alpha(input_image_path, output_image_path)
+    elif crop_action == "crop_api_watermark":
+        crop_api_watermark(input_image_path, output_image_path)
+    elif crop_action == "crop_tweet_text":
+        crop_tweet_text(input_image_path, output_image_path)
     else:
-        print("Invalid crop action. Use 'tweet' or 'author_and_text_only'.")
+        print("Invalid crop action.")
         sys.exit(2)
