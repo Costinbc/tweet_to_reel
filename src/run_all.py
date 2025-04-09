@@ -2,12 +2,7 @@ import subprocess
 import sys
 import os
 
-def run():
-    if len(sys.argv) != 2:
-        print("Usage: python run_all.py <tweet_url>")
-        sys.exit(1)
-
-    tweet_url = sys.argv[1]
+def run(type: str, tweet_url: str):
     tweet_id = tweet_url.split("/")[-1]
 
     script_path = os.path.abspath(__file__)
@@ -25,7 +20,7 @@ def run():
     os.makedirs(results_dir, exist_ok=True)
 
     screenshot_py = os.path.join(src_dir, "screenshot_tp.py")
-    extract_py = os.path.join(src_dir, "extract_tweet_text.py")
+    extract_py = os.path.join(src_dir, "crop_tweet.py")
     video_dl_py = os.path.join(src_dir, "video_dl.py")
     assemble_py = os.path.join(src_dir, "assemble_reel.py")
     # screenshot_sh = os.path.join(src_dir, "screenshot.sh")
@@ -42,25 +37,45 @@ def run():
 
     # print("💡 Verifying image exists:", os.path.exists(img_raw), "|", img_raw)
 
-    print("▶️ Running screenshot.sh to download tweet screenshot...")
-    subprocess.run(["python", screenshot_py, tweet_url, img_raw], check=True)
-    print("💡 Verifying image exists:", os.path.exists(img_raw), "|", img_raw)
+    if type == "video":
+        print("▶️ Running screenshot.sh to download tweet screenshot...")
+        subprocess.run(["python", screenshot_py, type, tweet_url, img_raw], check=True)
+        print("💡 Verifying image exists:", os.path.exists(img_raw), "|", img_raw)
 
-    # Old API
-    # print("✂️ Extracting only tweet text...")
-    # subprocess.run(["python", extract_py, "tweet_card", img_raw, img_final], check=True)
+        # Old API
+        # print("✂️ Extracting only tweet text...")
+        # subprocess.run(["python", extract_py, "tweet_card", img_raw, img_final], check=True)
 
-    print("✂️ Cropping tweet...")
-    subprocess.run(["python", extract_py, "crop_tweet", img_raw, img_final], check=True)
-    print(f"✅ Done! Tweet text saved as {img_final}")
+        print("✂️ Cropping tweet...")
+        subprocess.run(["python", extract_py, "crop_tweet", img_raw, img_final], check=True)
+        print(f"✅ Done! Tweet text saved as {img_final}")
 
-    print("📽 Downloading tweet video...")
-    subprocess.run(["python", video_dl_py, tweet_url], check=True)
-    print("✅ Done! Tweet video downloaded.")
+        print("📽 Downloading tweet video...")
+        subprocess.run(["python", video_dl_py, tweet_url], check=True)
+        print("✅ Done! Tweet video downloaded.")
 
-    print("🎬 Creating the reel...")
-    subprocess.run(["python", assemble_py, img_final, video_path, reel_output], check=True)
-    print(f"✅ Done! Reel created as {reel_output}")
+        print("🎬 Creating the reel...")
+        subprocess.run(["python", assemble_py, img_final, video_path, reel_output], check=True)
+        print(f"✅ Done! Reel created as {reel_output}")
+
+    elif type == "photo":
+        print("▶️ Downloading tweet screenshot...")
+        subprocess.run(["python", screenshot_py, type, tweet_url, img_raw], check=True)
+        print("💡 Verifying image exists:", os.path.exists(img_raw), "|", img_raw)
+
+        print("✂️ Cropping tweet...")
+        subprocess.run(["python", extract_py, "crop_photo", img_raw, img_final], check=True)
+        print(f"✅ Done! Tweet saved as {img_final}")
+
+    else:
+        print("❌ Invalid type. Use 'photo' or 'video'.")
+        sys.exit(1)
 
 if __name__ == "__main__":
-    run()
+    if len(sys.argv) != 3:
+        print("Usage: python run_all.py <type> <tweet_url>")
+        sys.exit(1)
+
+    type = sys.argv[1]
+    tweet_url = sys.argv[2]
+    run(type, tweet_url)

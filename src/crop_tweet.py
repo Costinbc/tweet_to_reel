@@ -26,6 +26,26 @@ def crop_api_watermark(input_path, output_path=None):
     cv2.imwrite(output_path, cropped)
     return output_path
 
+def crop_photo(input_path, output_path=None):
+    print(f"🧪 Reading image from: {input_path}")
+    image = cv2.imread(input_path)
+    if image is None:
+        print("❌ OpenCV failed to read the image.")
+        raise ValueError(f"Could not open image at {input_path}")
+
+    height, width = image.shape[:2]
+
+    y1 = 285
+    y2 = 1635
+    cropped = image[y1:y2, 0:width]
+
+    if output_path is None:
+        base_name = os.path.splitext(input_path)[0]
+        output_path = f"{base_name}_final.jpg"
+
+    cv2.imwrite(output_path, cropped)
+    return output_path
+
 def crop_tweet(input_path, output_path=None):
     base_name = os.path.splitext(input_path)[0]
     output_temp = f"{base_name}_cropped.png" 
@@ -207,6 +227,8 @@ if __name__ == "__main__":
         crop_api_watermark(input_image_path, output_image_path)
     elif crop_action == "crop_tweet_text":
         crop_tweet_text(input_image_path, output_image_path)
+    elif crop_action == "crop_photo":
+        crop_photo(input_image_path, output_image_path)
     else:
         print("Invalid crop action.")
         sys.exit(2)
