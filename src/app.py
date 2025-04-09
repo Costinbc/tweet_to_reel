@@ -86,6 +86,7 @@ def index():
 
                 return redirect(url_for("reel_result", job_id=job_id))
 
+            # Known issue: photos bigger than 1080x1350 are not cropped correctly
             elif mode == "photo":
                 subprocess.run(["python", screenshot_py, "photo", tweet_url, img_raw], check=True)
                 with open("progress.json", "w") as f:

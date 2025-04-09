@@ -55,7 +55,7 @@ def run(tweet_url: str, output_path: str, type: str):
 
 if __name__ == "__main__":
     if len(sys.argv) != 4:
-        print("Usage: python screenshot_api.py <screenshot_type> <Twitter URL> <Output Path>")
+        print("Usage: python screenshot_tp.py <screenshot_type> <Twitter URL> <Output Path>")
         sys.exit(1)
 
     type = sys.argv[1]
