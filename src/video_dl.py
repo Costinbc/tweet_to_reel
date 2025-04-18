@@ -1,4 +1,3 @@
-import tweet_embed_screenshot
 import sys
 import os
 import yt_dlp
