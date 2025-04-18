@@ -19,7 +19,7 @@ def run(type: str, tweet_url: str):
     os.makedirs(downloads_dir, exist_ok=True)
     os.makedirs(results_dir, exist_ok=True)
 
-    screenshot_py = os.path.join(src_dir, "screenshot_tp.py")
+    screenshot_py = os.path.join(src_dir, "screenshot_ors.py")
     extract_py = os.path.join(src_dir, "crop_tweet.py")
     video_dl_py = os.path.join(src_dir, "video_dl.py")
     assemble_py = os.path.join(src_dir, "assemble_reel.py")
@@ -42,13 +42,12 @@ def run(type: str, tweet_url: str):
         subprocess.run(["python", screenshot_py, type, tweet_url, img_raw], check=True)
         print("💡 Verifying image exists:", os.path.exists(img_raw), "|", img_raw)
 
-        # Old API
-        # print("✂️ Extracting only tweet text...")
-        # subprocess.run(["python", extract_py, "tweet_card", img_raw, img_final], check=True)
+        print("✂️ Extracting only tweet text...")
+        subprocess.run(["python", extract_py, "tweet_card", img_raw, img_final], check=True)
 
-        print("✂️ Cropping tweet...")
-        subprocess.run(["python", extract_py, "crop_tweet", img_raw, img_final], check=True)
-        print(f"✅ Done! Tweet text saved as {img_final}")
+        # print("✂️ Cropping tweet...")
+        # subprocess.run(["python", extract_py, "crop_tweet", img_raw, img_final], check=True)
+        # print(f"✅ Done! Tweet text saved as {img_final}")
 
         print("📽 Downloading tweet video...")
         subprocess.run(["python", video_dl_py, tweet_url], check=True)
@@ -64,8 +63,11 @@ def run(type: str, tweet_url: str):
         print("💡 Verifying image exists:", os.path.exists(img_raw), "|", img_raw)
 
         print("✂️ Cropping tweet...")
-        subprocess.run(["python", extract_py, "crop_photo", img_raw, img_final], check=True)
-        print(f"✅ Done! Tweet saved as {img_final}")
+        subprocess.run(["python", extract_py, "photo_card", img_raw, img_final], check=True)
+
+        print("Padding the image...")
+        subprocess.run(["python", extract_py, "pad_photo", img_final, img_final], check=True)
+        print(f"✅ Done! Tweet text saved as {img_final}")
 
     else:
         print("❌ Invalid type. Use 'photo' or 'video'.")

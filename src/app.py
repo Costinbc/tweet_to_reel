@@ -19,7 +19,7 @@ print("BASE DIR:", base_dir)
 os.makedirs(downloads_dir, exist_ok=True)
 os.makedirs(results_dir, exist_ok=True)
 
-screenshot_py = os.path.join(src_dir, "screenshot_tp.py")
+screenshot_py = os.path.join(src_dir, "screenshot_ors.py")
 crop_py = os.path.join(src_dir, "crop_tweet.py")
 video_dl_py = os.path.join(src_dir, "video_dl.py")
 assemble_py = os.path.join(src_dir, "assemble_reel.py")
@@ -39,6 +39,7 @@ def index():
         job_id = str(uuid.uuid4())[:8]
 
         img_raw = os.path.join(downloads_dir, f"{tweet_id}.png")
+        img_cropped = os.path.join(downloads_dir, f"{tweet_id}_cropped.png")
         img_final = os.path.join(results_dir, f"{job_id}_photo.png")
         video_path = os.path.join(downloads_dir, f"{tweet_id}_video.mp4")
         reel_output = os.path.join(results_dir, f"{job_id}_reel.mp4")
@@ -60,7 +61,7 @@ def index():
 
                 subprocess.run([
                     "python", crop_py,
-                    "crop_tweet",
+                    "tweet_card",
                     img_raw,
                     img_final
                 ], check=True)
@@ -86,7 +87,6 @@ def index():
 
                 return redirect(url_for("reel_result", job_id=job_id))
 
-            # Known issue: photos bigger than 1080x1350 are not cropped correctly
             elif mode == "photo":
                 subprocess.run(["python", screenshot_py, "photo", tweet_url, img_raw], check=True)
                 with open("progress.json", "w") as f:
@@ -94,8 +94,17 @@ def index():
 
                 subprocess.run([
                     "python", crop_py,
-                    "crop_photo",
+                    "photo_card",
                     img_raw,
+                    img_cropped
+                ], check=True)
+                with open("progress.json", "w") as f:
+                    json.dump({"percent": 60}, f)
+
+                subprocess.run([
+                    "python", crop_py,
+                    "pad_photo",
+                    img_cropped,
                     img_final
                 ], check=True)
                 with open("progress.json", "w") as f:

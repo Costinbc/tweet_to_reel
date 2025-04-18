@@ -1,6 +1,7 @@
-import yt_dlp
+import tweet_embed_screenshot
 import sys
 import os
+import yt_dlp
 
 def download_tweet_video(tweet_url):
     tweet_id = tweet_url.split("/")[-1]
