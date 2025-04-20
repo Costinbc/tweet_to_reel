@@ -12,7 +12,7 @@ def assemble_reel(image, video, output):
         "[1:v]scale=1080:-1[img];"
         "[img][vid]vstack=inputs=2[stacked];"
         "color=white:s=1080x1920:d=5[bg];"
-        "[bg][stacked]overlay=(W-w)/2:(H-h)/2[final]",
+        "[bg][stacked]overlay=(W-w)/2:((H-h)/2 + 70)[final]",
         "-map", "[final]",
         "-map", "0:a?",
         "-c:v", "libx264",
