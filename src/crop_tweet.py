@@ -201,7 +201,7 @@ def crop_tweet_text(input_path, output_path=None):
     return output_path
 
 
-def extract_tweet_card(input_path, output_path=None, tweet_type="video"):
+def extract_tweet_card(input_path, output_path=None, tweet_type="video", reel_type=None):
     img = cv2.imread(input_path)
     if img is None:
         raise ValueError(f"Could not open image at {input_path}")
@@ -246,12 +246,18 @@ def extract_tweet_card(input_path, output_path=None, tweet_type="video"):
         img_pil = Image.fromarray(cv2.cvtColor(tweet_card, cv2.COLOR_BGR2RGB))
         original_width, original_height = img_pil.size
 
+
         inner_width = min(original_width, 900)
         new_height = int(original_height * (inner_width / original_width))
         resized = img_pil.resize((inner_width, new_height), Image.LANCZOS)
 
-        canvas = Image.new("RGB", (1080, new_height), "white")
-        offset_x = (1080 - inner_width) // 2
+        if reel_type == "blur":
+            padding = 800
+        else:
+            padding = 1080
+
+        canvas = Image.new("RGB", (padding, new_height), "white")
+        offset_x = (padding - inner_width) // 2
         canvas.paste(resized, (offset_x, 0))
         canvas.save(output_path)
 
@@ -297,20 +303,21 @@ def pad_photo(input_path, output_path=None):
     print(f"✅ Padded image saved to: {output_path}")
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
-        print("Usage: python extract_tweet_text.py <crop_action> <input_image_path> <output_image_path>")
+    if len(sys.argv) < 4:
+        print("Usage: python extract_tweet_text.py <crop_action> [<reel_type>] <input_image_path> <output_image_path>")
         sys.exit(1)
 
     crop_action = sys.argv[1]
-    input_image_path = os.path.abspath(sys.argv[2])
-    output_image_path = os.path.abspath(sys.argv[3]) if len(sys.argv) > 3 else None
+    reel_type = sys.argv[2] if len(sys.argv) > 4 else None
+    input_image_path = os.path.abspath(sys.argv[3]) if len(sys.argv) > 4 else os.path.abspath(sys.argv[2])
+    output_image_path = os.path.abspath(sys.argv[4]) if len(sys.argv) > 4 else os.path.abspath(sys.argv[3])
 
     if crop_action == "crop_tweet":
         crop_tweet(input_image_path, output_image_path)
     elif crop_action == "author_and_text_only":
         crop_tweet_author_and_text_only(input_image_path, output_image_path)
     elif crop_action == "tweet_card":
-        extract_tweet_card(input_image_path, output_image_path, "video")
+        extract_tweet_card(input_image_path, output_image_path, "video", reel_type)
     elif crop_action == "photo_card":
         extract_tweet_card(input_image_path, output_image_path, "photo")
     elif crop_action == "tweet_card_alpha":

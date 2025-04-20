@@ -47,7 +47,7 @@ def index():
         try:
             start_time = datetime.datetime.now()
 
-            if mode == "reel":
+            if mode == "white":
                 executor = ThreadPoolExecutor(max_workers=1)
                 video_download = executor.submit(
                     subprocess.run,
@@ -62,6 +62,7 @@ def index():
                 subprocess.run([
                     "python", crop_py,
                     "tweet_card",
+                    "white",
                     img_raw,
                     img_final
                 ], check=True)
@@ -75,6 +76,48 @@ def index():
 
                 subprocess.run([
                     "python", assemble_py,
+                    "white",
+                    img_final,
+                    video_path,
+                    reel_output
+                ], check=True)
+                with open("progress.json", "w") as f:
+                    json.dump({"percent": 100}, f)
+
+                duration = datetime.datetime.now() - start_time
+                print(f"Time taken to process tweet to reel: {duration}", flush=True)
+
+                return redirect(url_for("reel_result", job_id=job_id))
+
+            elif mode == "blur":
+                executor = ThreadPoolExecutor(max_workers=1)
+                video_download = executor.submit(
+                    subprocess.run,
+                    ["python", video_dl_py, tweet_url],
+                    check=True
+                )
+
+                subprocess.run(["python", screenshot_py, "video", tweet_url, img_raw], check=True)
+                with open("progress.json", "w") as f:
+                    json.dump({"percent": 10}, f)
+
+                subprocess.run([
+                    "python", crop_py,
+                    "tweet_card",
+                    "blur",
+                    img_raw,
+                    img_final
+                ], check=True)
+                with open("progress.json", "w") as f:
+                    json.dump({"percent": 25}, f)
+
+                video_download.result()
+                with open("progress.json", "w") as f:
+                    json.dump({"percent": 50}, f)
+
+                subprocess.run([
+                    "python", assemble_py,
+                    "blur",
                     img_final,
                     video_path,
                     reel_output
