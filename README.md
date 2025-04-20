@@ -8,6 +8,7 @@ This project is a work in progress. Current features include:
 - Crop and clean up the tweet image
 - Download video content from the tweet
 - Combine image and video into a 1080x1920 reel using FFmpeg
+- Reels can either have white or blurred backgrounds
 - Generate static tweet images sized for Instagram (1080x1350)
 - Mobile-friendly web interface with download links
 
@@ -17,9 +18,10 @@ You can run the project in two ways:
 
 - Via script:
   ```
-  python src/run_all.py <type> <tweet_url>
+  python src/run_all.py <result_type> [<reel_type>] <tweet_url>
   ```
-  type: video / photo
+  result_type: video/photo
+  reel_type: white/blur - not needed if result_type is photo
 
 - Using the web app:
   ```
