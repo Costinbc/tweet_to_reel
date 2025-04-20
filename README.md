@@ -20,7 +20,7 @@ You can run the project in two ways:
   ```
   python src/run_all.py <result_type> [<reel_type>] <tweet_url>
   ```
-  result_type: video/photo
+  result_type: video/photo \
   reel_type: white/blur - not needed if result_type is photo
 
 - Using the web app:
