@@ -24,30 +24,33 @@
       </select>
       <button type="submit">Generate</button>
     </form>
-    <div class="progress-bar">
-      <div id="progress-bar-fill" class="progress-bar-fill"></div>
-    </div>
+    <div id="status-message" class="status-message"></div>
+    <div id="time-left" class="time-left"></div>
   </div>
   <footer>
     &copy; {{ year or "2025" }} Tweet to Reel by Costin. All rights reserved.
   </footer>
   <script>
-    function startProgress() {
-      setTimeout(() => pollProgress(), 300);
-    }
+  function startProgress() {
+    setTimeout(() => pollProgress(), 300);
+  }
 
-    function pollProgress() {
-      const fill = document.getElementById('progress-bar-fill');
-      fetch('/progress')
-        .then(res => res.json())
-        .then(data => {
-          fill.style.width = data.percent + '%';
-          if (data.percent < 100) {
-            setTimeout(pollProgress, 500);
-          }
-        })
-        .catch(() => setTimeout(pollProgress, 1000));
-    }
-  </script>
+  function pollProgress() {
+  fetch('/progress')
+    .then(res => res.json())
+    .then(data => {
+      const status = document.getElementById('status-message');
+      status.textContent = `Status: ${data.status}`;
+
+      const timeLeft = document.getElementById('time-left');
+      timeLeft.textContent = `Est. time left: ${data.time_left}`;
+
+      if (data.status !== "done") {
+        setTimeout(pollProgress, 500);
+      }
+    })
+    .catch(() => setTimeout(pollProgress, 1000));
+}
+</script>
 </body>
 </html>

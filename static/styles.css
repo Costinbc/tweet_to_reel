@@ -99,10 +99,3 @@ footer {
   border-radius: 5px;
   overflow: hidden;
 }
-
-.progress-bar-fill {
-  height: 100%;
-  width: 0%;
-  background-color: #1da1f2;
-  transition: width 0.4s ease;
-}

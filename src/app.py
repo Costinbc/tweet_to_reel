@@ -5,7 +5,8 @@ from concurrent.futures import ThreadPoolExecutor
 import subprocess
 import os
 import uuid
-import datetime
+import time
+from get_video_duration import get_video_duration
 
 base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 template_dir = os.path.join(base_dir, "templates")
@@ -42,20 +43,67 @@ def index():
         reel_output = os.path.join(results_dir, f"{job_id}_reel.mp4")
 
         try:
-            start_time = datetime.datetime.now()
+            start_time = time.time()
+            video_duration = get_video_duration(video_path)
+            with open("progress.json", "w") as f:
+                json.dump({
+                    "status": "Starting...",
+                    "step": "start",
+                    "start_time": start_time,
+                    "video_duration": video_duration,
+                    "type": "video",
+                }, f)
 
             if mode == "white":
                 executor = ThreadPoolExecutor(max_workers=1)
+
+                with open("progress.json") as f:
+                    existing = json.load(f)
+
+                start_time = existing.get("start_time", time.time())
+
+                with open("progress.json", "w") as f:
+                    json.dump({
+                    "status": "Downloading video...",
+                    "step": "video",
+                    "start_time": start_time,
+                    "video_duration": video_duration,
+                    "type": "video",
+                }, f)
                 video_download = executor.submit(
                     subprocess.run,
                     ["python", video_dl_py, tweet_url],
                     check=True
                 )
 
-                subprocess.run(["python", screenshot_py, "video", tweet_url, img_raw], check=True)
-                with open("progress.json", "w") as f:
-                    json.dump({"percent": 10}, f)
+                with open("progress.json") as f:
+                    existing = json.load(f)
 
+                start_time = existing.get("start_time", time.time())
+
+                with open("progress.json", "w") as f:
+                    json.dump({
+                        "status": "Downloading image...",
+                        "step": "image",
+                        "start_time": start_time,
+                        "video_duration": video_duration,
+                        "type": "video",
+                    }, f)
+                subprocess.run(["python", screenshot_py, "video", tweet_url, img_raw], check=True)
+
+                with open("progress.json") as f:
+                    existing = json.load(f)
+
+                start_time = existing.get("start_time", time.time())
+
+                with open("progress.json", "w") as f:
+                    json.dump({
+                        "status": "Cropping image...",
+                        "step": "crop",
+                        "start_time": start_time,
+                        "video_duration": video_duration,
+                        "type": "video",
+                    }, f)
                 subprocess.run([
                     "python", crop_py,
                     "tweet_card",
@@ -64,13 +112,21 @@ def index():
                     img_final
                 ], check=True)
 
-                with open("progress.json", "w") as f:
-                    json.dump({"percent": 25}, f)
-
                 video_download.result()
-                with open("progress.json", "w") as f:
-                    json.dump({"percent": 50}, f)
 
+                with open("progress.json") as f:
+                    existing = json.load(f)
+
+                start_time = existing.get("start_time", time.time())
+
+                with open("progress.json", "w") as f:
+                    json.dump({
+                        "status": "Creating reel...",
+                        "step": "reel",
+                        "start_time": start_time,
+                        "video_duration": video_duration,
+                        "type": "video",
+                    }, f)
                 subprocess.run([
                     "python", assemble_py,
                     "white",
@@ -78,26 +134,60 @@ def index():
                     video_path,
                     reel_output
                 ], check=True)
-                with open("progress.json", "w") as f:
-                    json.dump({"percent": 100}, f)
 
-                duration = datetime.datetime.now() - start_time
-                print(f"Time taken to process tweet to reel: {duration}", flush=True)
 
                 return redirect(url_for("reel_result", job_id=job_id))
 
             elif mode == "blur":
                 executor = ThreadPoolExecutor(max_workers=1)
+
+                with open("progress.json") as f:
+                    existing = json.load(f)
+
+                start_time = existing.get("start_time", time.time())
+
+                with open("progress.json", "w") as f:
+                    json.dump({
+                        "status": "Downloading video...",
+                        "step": "video",
+                        "start_time": start_time,
+                        "video_duration": video_duration,
+                        "type": "video",
+                    }, f)
                 video_download = executor.submit(
                     subprocess.run,
                     ["python", video_dl_py, tweet_url],
                     check=True
                 )
 
-                subprocess.run(["python", screenshot_py, "video", tweet_url, img_raw], check=True)
-                with open("progress.json", "w") as f:
-                    json.dump({"percent": 10}, f)
+                with open("progress.json") as f:
+                    existing = json.load(f)
 
+                start_time = existing.get("start_time", time.time())
+
+                with open("progress.json", "w") as f:
+                    json.dump({
+                        "status": "Downloading image...",
+                        "step": "image",
+                        "start_time": start_time,
+                        "video_duration": video_duration,
+                        "type": "video",
+                    }, f)
+                subprocess.run(["python", screenshot_py, "video", tweet_url, img_raw], check=True)
+
+                with open("progress.json") as f:
+                    existing = json.load(f)
+
+                start_time = existing.get("start_time", time.time())
+
+                with open("progress.json", "w") as f:
+                    json.dump({
+                        "status": "Cropping image...",
+                        "step": "crop",
+                        "start_time": start_time,
+                        "video_duration": video_duration,
+                        "type": "video",
+                    }, f)
                 subprocess.run([
                     "python", crop_py,
                     "tweet_card",
@@ -105,13 +195,22 @@ def index():
                     img_raw,
                     img_final
                 ], check=True)
-                with open("progress.json", "w") as f:
-                    json.dump({"percent": 25}, f)
 
                 video_download.result()
-                with open("progress.json", "w") as f:
-                    json.dump({"percent": 50}, f)
 
+                with open("progress.json") as f:
+                    existing = json.load(f)
+
+                start_time = existing.get("start_time", time.time())
+
+                with open("progress.json", "w") as f:
+                    json.dump({
+                        "status": "Creating reel...",
+                        "step": "reel",
+                        "start_time": start_time,
+                        "video_duration": video_duration,
+                        "type": "video",
+                    }, f)
                 subprocess.run([
                     "python", assemble_py,
                     "blur",
@@ -119,36 +218,52 @@ def index():
                     video_path,
                     reel_output
                 ], check=True)
-                with open("progress.json", "w") as f:
-                    json.dump({"percent": 100}, f)
 
-                duration = datetime.datetime.now() - start_time
-                print(f"Time taken to process tweet to reel: {duration}", flush=True)
+                with open("progress.json", "w") as f:
+                    json.dump({"status": "Reel created."}, f)
 
                 return redirect(url_for("reel_result", job_id=job_id))
 
             elif mode == "photo":
-                subprocess.run(["python", screenshot_py, "photo", tweet_url, img_raw], check=True)
                 with open("progress.json", "w") as f:
-                    json.dump({"percent": 10}, f)
+                    json.dump({
+                        "status": "Downloading image...",
+                        "step": "image",
+                        "start_time": start_time,
+                        "video_duration": 0,
+                        "type": "photo",
+                    }, f)
+                subprocess.run(["python", screenshot_py, "photo", tweet_url, img_raw], check=True)
 
+                with open("progress.json", "w") as f:
+                    json.dump({
+                        "status": "Cropping image...",
+                        "step": "crop",
+                        "start_time": start_time,
+                        "video_duration": 0,
+                        "type": "photo",
+                    }, f)
                 subprocess.run([
                     "python", crop_py,
                     "photo_card",
                     img_raw,
                     img_cropped
                 ], check=True)
-                with open("progress.json", "w") as f:
-                    json.dump({"percent": 60}, f)
 
+                with open("progress.json", "w") as f:
+                    json.dump({
+                        "status": "Padding image...",
+                        "step": "pad",
+                        "start_time": start_time,
+                        "video_duration": 0,
+                        "type": "photo",
+                    }, f)
                 subprocess.run([
                     "python", crop_py,
                     "pad_photo",
                     img_cropped,
                     img_final
                 ], check=True)
-                with open("progress.json", "w") as f:
-                    json.dump({"percent": 100}, f)
 
                 return redirect(url_for("photo_result", job_id=job_id))
 
@@ -177,11 +292,43 @@ def download(filename):
 def health():
     return "App is running!"
 
+step_weights = {
+    "start": 0,
+    "screenshot": 5,
+    "crop": 1,
+    "video": 1,
+    "reel": 4,
+    "done": 0
+}
+
 @app.route("/progress")
 def progress():
-    import json
-    with open("progress.json", "r") as f:
-        return jsonify(json.load(f))
+    try:
+        with open("progress.json", "r") as f:
+            data = json.load(f)
+    except Exception:
+        return jsonify(status="Working...", time_left="Estimating...")
+
+    status = data.get("status", "Working...")
+    start_time = data.get("start_time", time.time())
+    video_duration = data.get("video_duration", 0)
+    type = data.get("type", "video")
+
+    elapsed = time.time() - start_time
+
+    if type == "photo":
+        step_weights["reel"] = 0
+        step_weights["video"] = 0
+    elif type == "video":
+        step_weights["reel"] = video_duration * 0.7
+    steps = list(step_weights.keys())
+    est_total = sum([step_weights[s] for s in steps])
+    est_remaining = max(0, int(est_total - elapsed))
+
+    return jsonify(
+        status=status,
+        time_left=f"~{est_remaining}s" if est_remaining else "Almost done"
+    )
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
