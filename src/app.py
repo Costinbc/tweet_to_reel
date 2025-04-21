@@ -119,6 +119,8 @@ def index():
 
                 start_time = existing.get("start_time", time.time())
 
+                if video_duration == 0:
+                    video_duration = get_video_duration(video_path)
                 with open("progress.json", "w") as f:
                     json.dump({
                         "status": "Creating reel...",
@@ -203,6 +205,8 @@ def index():
 
                 start_time = existing.get("start_time", time.time())
 
+                if video_duration == 0:
+                    video_duration = get_video_duration(video_path)
                 with open("progress.json", "w") as f:
                     json.dump({
                         "status": "Creating reel...",
