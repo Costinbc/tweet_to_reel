@@ -320,6 +320,8 @@ def progress():
         step_weights["reel"] = 0
         step_weights["video"] = 0
     elif type == "video":
+        if video_duration == 0:
+            return jsonify(status=status, time_left="Estimating...")
         step_weights["reel"] = video_duration * 0.8
     steps = list(step_weights.keys())
     est_total = sum([step_weights[s] for s in steps])
