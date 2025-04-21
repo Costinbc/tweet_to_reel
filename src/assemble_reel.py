@@ -84,14 +84,14 @@ if __name__ == "__main__":
         sys.exit(1)
 
     if reel_type == "white":
-        print("🎬 Creating the reel with white background...")
+        print("Creating the reel with white background...")
         assemble_reel_white(image_path, video_path, output_path)
     elif reel_type == "blur":
-        print("🎬 Generating rounded mask...")
+        print("Generating rounded mask...")
         mask_path = os.path.splitext(image_path)[0] + "_mask.png"
         generate_rounded_mask(image_path, mask_path)
-        print("🎬 Creating the reel with blurred background...")
+        print("Creating the reel with blurred background...")
         assemble_reel_blur(image_path, video_path, mask_path, output_path)
     else:
-        print("❌ Invalid reel type. Use 'white' or 'blur'.")
+        print("Invalid reel type. Use 'white' or 'blur'.")
         sys.exit(1)

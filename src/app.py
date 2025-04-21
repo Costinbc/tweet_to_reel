@@ -13,9 +13,6 @@ downloads_dir = os.path.join(base_dir, "downloads")
 results_dir = os.path.join(base_dir, "results")
 src_dir = os.path.join(base_dir, "src")
 
-print("RUNNING FROM:", os.getcwd())
-print("BASE DIR:", base_dir)
-
 os.makedirs(downloads_dir, exist_ok=True)
 os.makedirs(results_dir, exist_ok=True)
 
@@ -178,7 +175,7 @@ def download(filename):
 
 @app.route("/health")
 def health():
-    return "✅ App is running!"
+    return "App is running!"
 
 @app.route("/progress")
 def progress():
