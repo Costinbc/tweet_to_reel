@@ -36,4 +36,16 @@ You can run the project in two ways:
 - Deployed on Google Cloud Run
 - Currently hosted at [tweet-to-reel.com](https://tweet-to-reel.com)
 
+
+### Known limitations
+
+- No retry feature for failed steps.
+- Videos are automatically cropped to 1080x1080, possibly leaving out important content.
+- No mobile app; results must first be downloaded, then saved to the gallery.
+
+### Planned features/fixes
+
+- Improve estimated time remaining accuracy.
+- Progress updates have rendering problems on mobile browsers.
+
 More features and improvements coming soon.
