@@ -44,7 +44,7 @@ def assemble_reel_blur(image, video, mask, output):
         "-i", image,
         "-i", mask,
         "-filter_complex",
-        "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920[bg];"
+        "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=20:1[bg];"
         "[0:v]crop='min(iw,ih)':'min(iw,ih)',scale=1080:1080[vid];"
         "[1:v]format=rgba[img];"
         "[2:v]scale=iw:ih[mask];"
