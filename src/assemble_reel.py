@@ -30,7 +30,7 @@ def assemble_reel_white(image, video, output):
         "-b:a", "128k",
         "-preset", "veryfast",
         "-crf", "28",
-        "-threads", "2",
+        "-threads", "4",
         "-shortest",
         "-y", output
     ]
@@ -59,7 +59,7 @@ def assemble_reel_blur(image, video, mask, output):
         "-b:a", "128k",
         "-preset", "veryfast",
         "-crf", "28",
-        "-threads", "2",
+        "-threads", "4",
         "-shortest",
         "-y", output
     ]
