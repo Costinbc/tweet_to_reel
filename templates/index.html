@@ -15,7 +15,7 @@
     {% if error %}
       <div class="error">{{ error }}</div>
     {% endif %}
-    <form id="tweetForm">
+    <form id="tweetForm" method="POST" action="#">
       <input type="text" name="url" placeholder="Enter tweet URL" required />
       <select name="mode" required>
         <option value="white">White background reel</option>
@@ -35,31 +35,27 @@
   const timeEl   = document.getElementById('time-left');
   const form     = document.getElementById('tweetForm');
 
-  let jobId = '';
-  let jobType = '';
-
-  form.addEventListener('submit', async (e) => {
+  form.addEventListener('submit', async function handleSubmit(e) {
     e.preventDefault();
-    const res   = await fetch('/', { method: 'POST', body: new FormData(form) });
-    const data  = await res.json();
-    jobId       = data.job_id;
-    jobType     = data.type;
-    pollProgress();
+    const res  = await fetch('/', { method: 'POST', body: new FormData(form) });
+    const data = await res.json();
+    pollProgress(data.job_id);
+    return false;
   });
 
-  function pollProgress() {
+  function pollProgress(jobId) {
     fetch(`/progress?job_id=${jobId}&ts=${Date.now()}`)
       .then(r => r.json())
       .then(d => {
         statusEl.textContent = `Status: ${d.status}`;
         timeEl.textContent   = `Est. time left: ${d.time_left}`;
-        if (d.status === 'Reel created.' && d.redirect_url) {
+        if (d.redirect_url) {
           window.location.href = d.redirect_url;
-          return;
+        } else {
+          setTimeout(() => pollProgress(jobId), 500);
         }
-        setTimeout(pollProgress, 500);
       })
-      .catch(() => setTimeout(pollProgress, 1000));
+      .catch(() => setTimeout(() => pollProgress(jobId), 1000));
   }
   </script>
 
