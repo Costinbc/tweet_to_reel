@@ -8,7 +8,10 @@ def download_tweet_video(tweet_url):
     project_root = os.path.abspath(os.path.join(script_path, "..", ".."))
     output_path = os.path.join(project_root, f"downloads/{tweet_id}_video.mp4")
 
-    ydl_opts = {'outtmpl': output_path}
+    ydl_opts = {
+        'format': 'bestvideo+bestaudio/best',
+        'outtmpl': output_path
+    }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([tweet_url])
