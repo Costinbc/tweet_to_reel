@@ -1,15 +1,16 @@
 import json
-
-from flask import Flask, request, render_template, send_file, redirect, url_for, jsonify
-from concurrent.futures import ThreadPoolExecutor
-import subprocess
 import os
-import uuid
+import subprocess
 import time
+import uuid
+from concurrent.futures import ThreadPoolExecutor
+
+from flask import Flask, jsonify, render_template, request, send_file
 from get_video_duration import get_video_duration
 
 base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 template_dir = os.path.join(base_dir, "templates")
+static_dir = os.path.join(base_dir, "static")
 downloads_dir = os.path.join(base_dir, "downloads")
 results_dir = os.path.join(base_dir, "results")
 src_dir = os.path.join(base_dir, "src")
@@ -22,8 +23,135 @@ crop_py = os.path.join(src_dir, "crop_tweet.py")
 video_dl_py = os.path.join(src_dir, "video_dl.py")
 assemble_py = os.path.join(src_dir, "assemble_reel.py")
 
-app = Flask(__name__, template_folder=template_dir, static_folder=os.path.join(base_dir, "static"))
+app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
 
+executor = ThreadPoolExecutor(max_workers=4)
+
+step_weights = {
+    "start": 0,
+    "screenshot": 5,
+    "crop": 1,
+    "video": 1,
+    "reel": 4,
+    "done": 0,
+}
+
+def progress_path(job_id: str) -> str:
+    return os.path.join(base_dir, f"progress_{job_id}.json")
+
+def write_progress(job_id: str, data: dict):
+    with open(progress_path(job_id), "w") as f:
+        json.dump(data, f)
+
+def load_progress(job_id: str):
+    try:
+        with open(progress_path(job_id)) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def process_job(tweet_url: str, mode: str, job_id: str):
+    tweet_id = tweet_url.rstrip("/").split("/")[-1]
+    img_raw = os.path.join(downloads_dir, f"{tweet_id}.png")
+    img_cropped = os.path.join(downloads_dir, f"{tweet_id}_cropped.png")
+    img_final = os.path.join(results_dir, f"{job_id}_photo.png")
+    video_path = os.path.join(downloads_dir, f"{tweet_id}_video.mp4")
+    reel_output = os.path.join(results_dir, f"{job_id}_reel.mp4")
+
+    start_time = time.time()
+    write_progress(job_id, {
+        "status": "Starting...",
+        "step": "start",
+        "start_time": start_time,
+        "video_duration": 0,
+        "type": mode,
+    })
+
+    if mode in ("white", "blur"):
+        write_progress(job_id, {
+            "status": "Downloading video...",
+            "step": "video",
+            "start_time": start_time,
+            "video_duration": 0,
+            "type": "video",
+        })
+        subprocess.run(["python", video_dl_py, tweet_url], check=True)
+
+        video_duration = get_video_duration(video_path)
+        write_progress(job_id, {
+            "status": "Downloading image...",
+            "step": "screenshot",
+            "start_time": start_time,
+            "video_duration": video_duration,
+            "type": "video",
+        })
+        subprocess.run(["python", screenshot_py, "video", tweet_url, img_raw], check=True)
+
+        video_duration = get_video_duration(video_path)
+        write_progress(job_id, {
+            "status": "Cropping image...",
+            "step": "crop",
+            "start_time": start_time,
+            "video_duration": video_duration,
+            "type": "video",
+        })
+        subprocess.run(["python", crop_py, "tweet_card", mode, img_raw, img_final], check=True)
+
+        video_duration = get_video_duration(video_path)
+        write_progress(job_id, {
+            "status": "Creating reel...",
+            "step": "reel",
+            "start_time": start_time,
+            "video_duration": video_duration,
+            "type": "video",
+        })
+        subprocess.run(["python", assemble_py, mode, img_final, video_path, reel_output], check=True)
+
+        write_progress(job_id, {
+            "status": "Reel created.",
+            "step": "done",
+            "start_time": start_time,
+            "video_duration": video_duration,
+            "type": "video",
+            "redirect_url": f"/result/reel/{job_id}",
+        })
+
+    else:
+        write_progress(job_id, {
+            "status": "Downloading image...",
+            "step": "screenshot",
+            "start_time": start_time,
+            "video_duration": 0,
+            "type": "photo",
+        })
+        subprocess.run(["python", screenshot_py, "photo", tweet_url, img_raw], check=True)
+
+        write_progress(job_id, {
+            "status": "Cropping image...",
+            "step": "crop",
+            "start_time": start_time,
+            "video_duration": 0,
+            "type": "photo",
+        })
+        subprocess.run(["python", crop_py, "photo_card", img_raw, img_cropped], check=True)
+
+        write_progress(job_id, {
+            "status": "Padding image...",
+            "step": "pad",
+            "start_time": start_time,
+            "video_duration": 0,
+            "type": "photo",
+        })
+        subprocess.run(["python", crop_py, "pad_photo", img_cropped, img_final], check=True)
+
+        write_progress(job_id, {
+            "status": "Reel created.",
+            "step": "done",
+            "start_time": start_time,
+            "video_duration": 0,
+            "type": "photo",
+            "redirect_url": f"/result/photo/{job_id}",
+        })
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -33,308 +161,73 @@ def index():
         if not tweet_url:
             return render_template("index.html", error="Please enter a tweet URL")
 
-        tweet_id = tweet_url.split("/")[-1]
-        job_id = str(uuid.uuid4())[:8]
-
-        img_raw = os.path.join(downloads_dir, f"{tweet_id}.png")
-        img_cropped = os.path.join(downloads_dir, f"{tweet_id}_cropped.png")
-        img_final = os.path.join(results_dir, f"{job_id}_photo.png")
-        video_path = os.path.join(downloads_dir, f"{tweet_id}_video.mp4")
-        reel_output = os.path.join(results_dir, f"{job_id}_reel.mp4")
-
-        try:
-            start_time = time.time()
-            video_duration = get_video_duration(video_path)
-            with open("progress.json", "w") as f:
-                json.dump({
-                    "status": "Starting...",
-                    "step": "start",
-                    "start_time": start_time,
-                    "video_duration": video_duration,
-                    "type": "video",
-                }, f)
-
-            if mode == "white":
-                executor = ThreadPoolExecutor(max_workers=1)
-
-                with open("progress.json") as f:
-                    existing = json.load(f)
-
-                start_time = existing.get("start_time", time.time())
-
-                with open("progress.json", "w") as f:
-                    json.dump({
-                    "status": "Downloading video...",
-                    "step": "video",
-                    "start_time": start_time,
-                    "video_duration": video_duration,
-                    "type": "video",
-                }, f)
-                video_download = executor.submit(
-                    subprocess.run,
-                    ["python", video_dl_py, tweet_url],
-                    check=True
-                )
-
-                with open("progress.json") as f:
-                    existing = json.load(f)
-
-                start_time = existing.get("start_time", time.time())
-
-                with open("progress.json", "w") as f:
-                    json.dump({
-                        "status": "Downloading image...",
-                        "step": "image",
-                        "start_time": start_time,
-                        "video_duration": video_duration,
-                        "type": "video",
-                    }, f)
-                subprocess.run(["python", screenshot_py, "video", tweet_url, img_raw], check=True)
-
-                with open("progress.json") as f:
-                    existing = json.load(f)
-
-                start_time = existing.get("start_time", time.time())
-
-                with open("progress.json", "w") as f:
-                    json.dump({
-                        "status": "Cropping image...",
-                        "step": "crop",
-                        "start_time": start_time,
-                        "video_duration": video_duration,
-                        "type": "video",
-                    }, f)
-                subprocess.run([
-                    "python", crop_py,
-                    "tweet_card",
-                    "white",
-                    img_raw,
-                    img_final
-                ], check=True)
-
-                video_download.result()
-
-                with open("progress.json") as f:
-                    existing = json.load(f)
-
-                start_time = existing.get("start_time", time.time())
-
-                if video_duration == 0:
-                    video_duration = get_video_duration(video_path)
-                with open("progress.json", "w") as f:
-                    json.dump({
-                        "status": "Creating reel...",
-                        "step": "reel",
-                        "start_time": start_time,
-                        "video_duration": video_duration,
-                        "type": "video",
-                    }, f)
-                subprocess.run([
-                    "python", assemble_py,
-                    "white",
-                    img_final,
-                    video_path,
-                    reel_output
-                ], check=True)
-
-
-                return redirect(url_for("reel_result", job_id=job_id))
-
-            elif mode == "blur":
-                executor = ThreadPoolExecutor(max_workers=1)
-
-                with open("progress.json") as f:
-                    existing = json.load(f)
-
-                start_time = existing.get("start_time", time.time())
-
-                with open("progress.json", "w") as f:
-                    json.dump({
-                        "status": "Downloading video...",
-                        "step": "video",
-                        "start_time": start_time,
-                        "video_duration": video_duration,
-                        "type": "video",
-                    }, f)
-                video_download = executor.submit(
-                    subprocess.run,
-                    ["python", video_dl_py, tweet_url],
-                    check=True
-                )
-
-                with open("progress.json") as f:
-                    existing = json.load(f)
-
-                start_time = existing.get("start_time", time.time())
-
-                with open("progress.json", "w") as f:
-                    json.dump({
-                        "status": "Downloading image...",
-                        "step": "image",
-                        "start_time": start_time,
-                        "video_duration": video_duration,
-                        "type": "video",
-                    }, f)
-                subprocess.run(["python", screenshot_py, "video", tweet_url, img_raw], check=True)
-
-                with open("progress.json") as f:
-                    existing = json.load(f)
-
-                start_time = existing.get("start_time", time.time())
-
-                with open("progress.json", "w") as f:
-                    json.dump({
-                        "status": "Cropping image...",
-                        "step": "crop",
-                        "start_time": start_time,
-                        "video_duration": video_duration,
-                        "type": "video",
-                    }, f)
-                subprocess.run([
-                    "python", crop_py,
-                    "tweet_card",
-                    "blur",
-                    img_raw,
-                    img_final
-                ], check=True)
-
-                video_download.result()
-
-                with open("progress.json") as f:
-                    existing = json.load(f)
-
-                start_time = existing.get("start_time", time.time())
-
-                if video_duration == 0:
-                    video_duration = get_video_duration(video_path)
-                with open("progress.json", "w") as f:
-                    json.dump({
-                        "status": "Creating reel...",
-                        "step": "reel",
-                        "start_time": start_time,
-                        "video_duration": video_duration,
-                        "type": "video",
-                    }, f)
-                subprocess.run([
-                    "python", assemble_py,
-                    "blur",
-                    img_final,
-                    video_path,
-                    reel_output
-                ], check=True)
-
-                with open("progress.json", "w") as f:
-                    json.dump({"status": "Reel created."}, f)
-
-                return redirect(url_for("reel_result", job_id=job_id))
-
-            elif mode == "photo":
-                with open("progress.json", "w") as f:
-                    json.dump({
-                        "status": "Downloading image...",
-                        "step": "image",
-                        "start_time": start_time,
-                        "video_duration": 0,
-                        "type": "photo",
-                    }, f)
-                subprocess.run(["python", screenshot_py, "photo", tweet_url, img_raw], check=True)
-
-                with open("progress.json", "w") as f:
-                    json.dump({
-                        "status": "Cropping image...",
-                        "step": "crop",
-                        "start_time": start_time,
-                        "video_duration": 0,
-                        "type": "photo",
-                    }, f)
-                subprocess.run([
-                    "python", crop_py,
-                    "photo_card",
-                    img_raw,
-                    img_cropped
-                ], check=True)
-
-                with open("progress.json", "w") as f:
-                    json.dump({
-                        "status": "Padding image...",
-                        "step": "pad",
-                        "start_time": start_time,
-                        "video_duration": 0,
-                        "type": "photo",
-                    }, f)
-                subprocess.run([
-                    "python", crop_py,
-                    "pad_photo",
-                    img_cropped,
-                    img_final
-                ], check=True)
-
-                return redirect(url_for("photo_result", job_id=job_id))
-
-        except subprocess.CalledProcessError as e:
-            return render_template("index.html", error="Something went wrong during processing.")
-
+        job_id = uuid.uuid4().hex[:8]
+        executor.submit(process_job, tweet_url, mode, job_id)
+        return jsonify(job_id=job_id, type=mode), 202
 
     return render_template("index.html")
 
-@app.route("/result/reel/<job_id>", endpoint="reel_result")
-def result(job_id):
-    filename = f"{job_id}_reel.mp4"
-    return render_template("download_reel.html", filename=filename)
+@app.route("/result/reel/<job_id>")
+def reel_result(job_id):
+    return render_template("download_reel.html", filename=f"{job_id}_reel.mp4")
 
-@app.route("/result/photo/<job_id>", endpoint="photo_result")
-def result_photo(job_id):
-    filename = f"{job_id}_photo.png"
-    return render_template("download_photo.html", filename=filename)
+@app.route("/result/photo/<job_id>")
+def photo_result(job_id):
+    return render_template("download_photo.html", filename=f"{job_id}_photo.png")
 
 @app.route("/download/<filename>")
 def download(filename):
-    path = os.path.join(results_dir, filename)
-    return send_file(path, as_attachment=True)
+    return send_file(os.path.join(results_dir, filename), as_attachment=True)
 
 @app.route("/health")
 def health():
     return "App is running!"
 
-step_weights = {
-    "start": 0,
-    "screenshot": 5,
-    "crop": 1,
-    "video": 1,
-    "reel": 4,
-    "done": 0
-}
-
 @app.route("/progress")
 def progress():
-    try:
-        with open("progress.json", "r") as f:
-            data = json.load(f)
-    except Exception:
-        return jsonify(status="Working...", time_left="Estimating...")
+    job_id = request.args.get("job_id")
+    if not job_id:
+        resp = jsonify(status="Waiting...", time_left="-")
+        resp.headers["Cache-Control"] = "no-store"
+        return resp
+
+    data = load_progress(job_id)
+    if not data:
+        resp = jsonify(status="Starting...", time_left="Estimating...")
+        resp.headers["Cache-Control"] = "no-store"
+        return resp
 
     status = data.get("status", "Working...")
     start_time = data.get("start_time", time.time())
     video_duration = data.get("video_duration", 0)
-    type = data.get("type", "video")
+    step = data.get("step", "start")
+    type_ = data.get("type", "video")
 
-    elapsed = time.time() - start_time
+    no_video_duration = False
 
-    if type == "photo":
+    if type_ == "photo":
         step_weights["reel"] = 0
         step_weights["video"] = 0
-    elif type == "video":
-        if video_duration == 0:
-            return jsonify(status=status, time_left="Estimating...")
-        step_weights["reel"] = video_duration * 0.8
-    steps = list(step_weights.keys())
-    est_total = sum([step_weights[s] for s in steps])
-    est_remaining = int(est_total - elapsed)
+    else:
+        if video_duration:
+            step_weights["reel"] = int(video_duration * 0.8)
+        else:
+            step_weights["reel"] = 0
+            no_video_duration = True
 
-    return jsonify(
+    elapsed = time.time() - start_time
+    est_total = sum(step_weights.values())
+    est_remaining = max(int(est_total - elapsed), 0)
+    if no_video_duration:
+        est_remaining = 0
+
+    resp = jsonify(
         status=status,
-        time_left=f"~{est_remaining}s" if est_remaining else "Almost done"
+        time_left=f"~{est_remaining}s" if est_remaining else "Wait...",
+        redirect_url=data.get("redirect_url"),
     )
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
