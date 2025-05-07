@@ -15,7 +15,7 @@
     {% if error %}
       <div class="error">{{ error }}</div>
     {% endif %}
-    <form method="POST" onsubmit="startProgress()">
+    <form id="tweetForm">
       <input type="text" name="url" placeholder="Enter tweet URL" required />
       <select name="mode" required>
         <option value="white">White background reel</option>
@@ -31,26 +31,37 @@
     &copy; {{ year or "2025" }} Tweet to Reel.
   </footer>
   <script>
-  function startProgress() {
-    setTimeout(() => pollProgress(), 300);
-  }
+  const statusEl = document.getElementById('status-message');
+  const timeEl   = document.getElementById('time-left');
+  const form     = document.getElementById('tweetForm');
+
+  let jobId = '';
+  let jobType = '';
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const res   = await fetch('/', { method: 'POST', body: new FormData(form) });
+    const data  = await res.json();
+    jobId       = data.job_id;
+    jobType     = data.type;
+    pollProgress();
+  });
 
   function pollProgress() {
-  fetch('/progress')
-    .then(res => res.json())
-    .then(data => {
-      const status = document.getElementById('status-message');
-      status.textContent = `Status: ${data.status}`;
-
-      const timeLeft = document.getElementById('time-left');
-      timeLeft.textContent = `Est. time left: ${data.time_left}`;
-
-      if (data.status !== "done") {
+    fetch(`/progress?job_id=${jobId}&ts=${Date.now()}`)
+      .then(r => r.json())
+      .then(d => {
+        statusEl.textContent = `Status: ${d.status}`;
+        timeEl.textContent   = `Est. time left: ${d.time_left}`;
+        if (d.status === 'Reel created.' && d.redirect_url) {
+          window.location.href = d.redirect_url;
+          return;
+        }
         setTimeout(pollProgress, 500);
-      }
-    })
-    .catch(() => setTimeout(pollProgress, 1000));
-}
-</script>
+      })
+      .catch(() => setTimeout(pollProgress, 1000));
+  }
+  </script>
+
 </body>
 </html>
