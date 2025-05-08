@@ -9,6 +9,7 @@ This project is a work in progress. Current features include:
 - Download video content from the tweet
 - Combine image and video into a 1080x1920 reel using FFmpeg
 - Reels can either have white or blurred backgrounds
+- Progress status and estimated time remaining
 - Generate static tweet images sized for Instagram (1080x1350)
 - Mobile-friendly web interface with download links
 
@@ -46,6 +47,5 @@ You can run the project in two ways:
 ### Planned features/fixes
 
 - Improve estimated time remaining accuracy.
-- Progress updates have rendering problems on mobile browsers.
 
 More features and improvements coming soon.
