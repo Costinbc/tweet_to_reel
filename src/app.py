@@ -28,12 +28,12 @@ app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
 executor = ThreadPoolExecutor(max_workers=4)
 
 step_weights = {
-    "start": 0,
+    "start": 1,
     "screenshot": 5,
     "crop": 1,
     "video": 1,
     "reel": 4,
-    "done": 0,
+    "done": 1,
 }
 
 def progress_path(job_id: str) -> str:
@@ -210,7 +210,7 @@ def progress():
         step_weights["video"] = 0
     else:
         if video_duration:
-            step_weights["reel"] = int(video_duration * 0.8)
+            step_weights["reel"] = int(video_duration * 0.9)
         else:
             step_weights["reel"] = 0
             no_video_duration = True
