@@ -108,7 +108,7 @@ def pad_photo(input_path, output_path=None):
 
 if __name__ == "__main__":
     if len(sys.argv) < 4:
-        print("Usage: python extract_tweet_text.py <crop_action> [<reel_type>] <input_image_path> <output_image_path>")
+        print("Usage: python crop_tweet.py <crop_action> [<reel_type>] <input_image_path> <output_image_path>")
         sys.exit(1)
 
     crop_action = sys.argv[1]

@@ -50,7 +50,7 @@ def load_progress(job_id: str):
     except Exception:
         return {}
 
-def process_job(tweet_url: str, mode: str, job_id: str):
+def process_job(tweet_url: str, type: str, layout: str, background: str, cropped: bool, job_id: str):
     tweet_id = tweet_url.rstrip("/").split("/")[-1]
     img_raw = os.path.join(downloads_dir, f"{tweet_id}.png")
     img_cropped = os.path.join(downloads_dir, f"{tweet_id}_cropped.png")
@@ -58,16 +58,21 @@ def process_job(tweet_url: str, mode: str, job_id: str):
     video_path = os.path.join(downloads_dir, f"{tweet_id}_video.mp4")
     reel_output = os.path.join(results_dir, f"{job_id}_reel.mp4")
 
+    reel_cropped = "cropped" if cropped else "uncropped"
+
     start_time = time.time()
     write_progress(job_id, {
         "status": "Starting...",
         "step": "start",
         "start_time": start_time,
         "video_duration": 0,
-        "type": mode,
+        "type": type,
+        "layout": layout,
+        "background": background,
+        "cropped": cropped,
     })
 
-    if mode in ("white", "blur"):
+    if type == "video":
         write_progress(job_id, {
             "status": "Downloading video...",
             "step": "video",
@@ -95,7 +100,7 @@ def process_job(tweet_url: str, mode: str, job_id: str):
             "video_duration": video_duration,
             "type": "video",
         })
-        subprocess.run(["python", crop_py, "tweet_card", mode, img_raw, img_final], check=True)
+        subprocess.run(["python", crop_py, "tweet_card", background, img_raw, img_final], check=True)
 
         video_duration = get_video_duration(video_path)
         write_progress(job_id, {
@@ -105,7 +110,7 @@ def process_job(tweet_url: str, mode: str, job_id: str):
             "video_duration": video_duration,
             "type": "video",
         })
-        subprocess.run(["python", assemble_py, mode, img_final, video_path, reel_output], check=True)
+        subprocess.run(["python", assemble_py, layout, background, reel_cropped, img_final, video_path, reel_output], check=True)
 
         write_progress(job_id, {
             "status": "Reel created.",
@@ -157,13 +162,16 @@ def process_job(tweet_url: str, mode: str, job_id: str):
 def index():
     if request.method == "POST":
         tweet_url = request.form.get("url")
-        mode = request.form.get("mode")
+        type = request.form.get("type")
+        layout = request.form.get("layout")
+        background = request.form.get("background")
+        cropped = request.form.get("cropped") == "1"
         if not tweet_url:
             return render_template("index.html", error="Please enter a tweet URL")
 
         job_id = uuid.uuid4().hex[:8]
-        executor.submit(process_job, tweet_url, mode, job_id)
-        return jsonify(job_id=job_id, type=mode), 202
+        executor.submit(process_job, tweet_url, type, layout, background, cropped, job_id)
+        return jsonify(job_id=job_id, type=type, layout=layout, background=background, cropped=cropped), 202
 
     return render_template("index.html")
 
