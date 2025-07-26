@@ -20,6 +20,11 @@ body {
   text-align: center;
 }
 
+.hidden   { display:none; }
+      .fade-in  { animation: fade 0.25s ease-in forwards; opacity:0; }
+      @keyframes fade { to { opacity:1; }
+      }
+
 h1 {
   font-size: 2rem;
   margin-bottom: 1rem;

@@ -17,11 +17,44 @@
     {% endif %}
     <form id="tweetForm" method="POST" action="#">
       <input type="text" name="url" placeholder="Enter tweet URL" required />
-      <select name="mode" required>
-        <option value="white">White background reel</option>
-        <option value="blur">Blur background reel</option>
-        <option value="photo">Photo</option>
-      </select>
+      <fieldset class="mb-3">
+        <legend class="form-label fw-semibold mb-2">Output type</legend>
+        <div class="form-check form-check-inline">
+          <input  class="form-check-input" type="radio"
+                  id="optPhoto"  name="type" value="photo" checked>
+          <label class="form-check-label" for="optPhoto">Photo</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input  class="form-check-input" type="radio"
+                  id="optVideo"  name="type" value="video">
+          <label class="form-check-label" for="optVideo">Video</label>
+        </div>
+      </fieldset>
+      <div id="videoOptions" class="hidden">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Layout</label>
+          <select class="form-select" name="layout">
+            <option value="video_bottom">Video bottom – image top</option>
+            <option value="video_top"    selected>Video top – image bottom</option>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Background</label>
+          <select class="form-select" name="background">
+            <option value="white">White</option>
+            <option value="blur">Blur</option>
+          </select>
+        </div>
+
+        <div class="form-check form-switch mb-3">
+          <input  class="form-check-input" type="checkbox"
+                  id="cropVideo" name="cropped" value="1">
+          <label class="form-check-label" for="cropVideo">
+            Crop video to 1:1 before stacking
+          </label>
+        </div>
+      </div>
       <button type="submit">Generate</button>
     </form>
     <div id="status-message" class="status-message">Waiting for input tweet...</div>
@@ -34,6 +67,18 @@
   const statusEl = document.getElementById('status-message');
   const timeEl   = document.getElementById('time-left');
   const form     = document.getElementById('tweetForm');
+  const optsBox  = document.getElementById('videoOptions');
+  const typeRadios = document.querySelectorAll('input[name="type"]');
+
+  typeRadios.forEach(radio => radio.addEventListener('change', () => {
+      if (document.getElementById('optVideo').checked) {
+          optsBox.classList.remove('hidden');
+          optsBox.classList.add('fade-in');
+      } else {
+          optsBox.classList.add('hidden');
+          optsBox.classList.remove('fade-in');
+      }
+  }));
 
   form.addEventListener('submit', async function handleSubmit(e) {
     e.preventDefault();
