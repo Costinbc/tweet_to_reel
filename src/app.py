@@ -5,6 +5,7 @@ import time
 import uuid
 import datetime
 import requests
+import logging, traceback
 from concurrent.futures import ThreadPoolExecutor
 from google.cloud import storage
 from flask import Flask, jsonify, render_template, request, send_file
@@ -12,6 +13,8 @@ from get_video_duration import get_video_duration
 
 from dotenv import load_dotenv
 load_dotenv()
+
+logging.basicConfig(level=logging.INFO)
 
 base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 template_dir = os.path.join(base_dir, "templates")
@@ -45,6 +48,10 @@ step_weights = {
     "reel": 4,
     "done": 1,
 }
+
+for name in ("STORAGE_BUCKET_NAME", "RUNPOD_ENDPOINT_ID", "RUNPOD_API_KEY"):
+    if not os.getenv(name):
+        raise RuntimeError(f"Missing env var {name}")
 
 def _signed_urls(tweet_id: str, layout: str, background: str, cropped: bool):
     reel_cropped = "cropped" if cropped else "uncropped"
@@ -126,7 +133,21 @@ def process_job(tweet_url: str, type: str, layout: str, background: str, cropped
     })
 
     if type == "video":
-        result = call_handler(job_id, tweet_url, layout, background, cropped)
+        try:
+            logging.info("Starting VIDEO job %s", job_id)
+            result_id, public_url = call_handler(job_id, tweet_url, layout, background, cropped)
+            logging.info("RunPod job %s enqueued url=%s", result_id, public_url)
+            write_progress(job_id, {
+                "status": "RunPod job queued",
+                "step": "video",
+                "redirect_url": public_url
+            })
+        except Exception as e:
+            logging.exception("Job %s failed: %s", job_id, e)
+            write_progress(job_id, {
+                "status": "ERROR: " + str(e),
+                "step": "error"
+            })
 
     else:
         write_progress(job_id, {
@@ -177,7 +198,7 @@ def index():
             return render_template("index.html", error="Please enter a tweet URL")
 
         job_id = uuid.uuid4().hex[:8]
-        executor.submit(process_job, tweet_url, type, layout, background, cropped, job_id)
+        future = executor.submit(process_job, tweet_url, type, layout, background, cropped, job_id)
         return jsonify(job_id=job_id, type=type, layout=layout, background=background, cropped=cropped), 202
 
     return render_template("index.html")
