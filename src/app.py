@@ -3,10 +3,15 @@ import os
 import subprocess
 import time
 import uuid
+import datetime
+import requests
 from concurrent.futures import ThreadPoolExecutor
-
+from google.cloud import storage
 from flask import Flask, jsonify, render_template, request, send_file
 from get_video_duration import get_video_duration
+
+from dotenv import load_dotenv
+load_dotenv()
 
 base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 template_dir = os.path.join(base_dir, "templates")
@@ -17,6 +22,11 @@ src_dir = os.path.join(base_dir, "src")
 
 os.makedirs(downloads_dir, exist_ok=True)
 os.makedirs(results_dir, exist_ok=True)
+
+BUCKET = os.environ.get("STORAGE_BUCKET_NAME")
+ENDPOINT_ID = os.environ.get("RUNPOD_ENDPOINT_ID")
+RUNPOD_API_KEY = os.environ.get("RUNPOD_API_KEY")
+storage_client = storage.Client()
 
 screenshot_py = os.path.join(src_dir, "screenshot_ors.py")
 crop_py = os.path.join(src_dir, "crop_tweet.py")
@@ -36,6 +46,28 @@ step_weights = {
     "done": 1,
 }
 
+def _signed_urls(tweet_id: str, layout: str, background: str, cropped: bool):
+    reel_cropped = "cropped" if cropped else "uncropped"
+    obj = (
+        f"reels/{datetime.date.today():%Y/%m/%d}/"
+        f"{tweet_id}_{layout}_{background}_{reel_cropped}.mp4"
+    )
+    bucket = storage_client.bucket(BUCKET)
+    blob = bucket.blob(obj)
+
+    upload_url = blob.generate_signed_url(
+        version="v4",
+        expiration=datetime.timedelta(minutes=15),
+        method="PUT",
+        content_type="video/mp4")
+
+    public_url = blob.generate_signed_url(
+        version="v4",
+        expiration=datetime.timedelta(hours=1),
+        method="GET")
+
+    return upload_url, public_url, obj
+
 def progress_path(job_id: str) -> str:
     return os.path.join(base_dir, f"progress_{job_id}.json")
 
@@ -49,6 +81,27 @@ def load_progress(job_id: str):
             return json.load(f)
     except Exception:
         return {}
+
+def call_handler(job_id: str, tweet_url: str, layout: str, background: str, cropped: bool):
+    upload_url, public_url, obj = _signed_urls(tweet_url.split("/")[-1], layout, background, cropped)
+
+    data = {
+        "input": {
+            "upload_url": upload_url,
+            "public_url": public_url,
+            "tweet_url": tweet_url,
+            "layout": layout,
+            "background": background,
+            "cropped": cropped
+            },
+    }
+
+    r = requests.post(
+        f"https://api.runpod.ai/v2/{ENDPOINT_ID}/run",
+        headers={"Authorization": RUNPOD_API_KEY},
+        json=data, timeout=30)
+    r.raise_for_status()
+    return r.json()["id"], public_url
 
 def process_job(tweet_url: str, type: str, layout: str, background: str, cropped: bool, job_id: str):
     tweet_id = tweet_url.rstrip("/").split("/")[-1]
@@ -73,53 +126,7 @@ def process_job(tweet_url: str, type: str, layout: str, background: str, cropped
     })
 
     if type == "video":
-        write_progress(job_id, {
-            "status": "Downloading video...",
-            "step": "video",
-            "start_time": start_time,
-            "video_duration": 0,
-            "type": "video",
-        })
-        subprocess.run(["python", video_dl_py, tweet_url], check=True)
-
-        video_duration = get_video_duration(video_path)
-        write_progress(job_id, {
-            "status": "Downloading image...",
-            "step": "screenshot",
-            "start_time": start_time,
-            "video_duration": video_duration,
-            "type": "video",
-        })
-        subprocess.run(["python", screenshot_py, "video", tweet_url, img_raw], check=True)
-
-        video_duration = get_video_duration(video_path)
-        write_progress(job_id, {
-            "status": "Cropping image...",
-            "step": "crop",
-            "start_time": start_time,
-            "video_duration": video_duration,
-            "type": "video",
-        })
-        subprocess.run(["python", crop_py, "tweet_card", background, img_raw, img_final], check=True)
-
-        video_duration = get_video_duration(video_path)
-        write_progress(job_id, {
-            "status": "Creating reel...",
-            "step": "reel",
-            "start_time": start_time,
-            "video_duration": video_duration,
-            "type": "video",
-        })
-        subprocess.run(["python", assemble_py, layout, background, reel_cropped, img_final, video_path, reel_output], check=True)
-
-        write_progress(job_id, {
-            "status": "Reel created.",
-            "step": "done",
-            "start_time": start_time,
-            "video_duration": video_duration,
-            "type": "video",
-            "redirect_url": f"/result/reel/{job_id}",
-        })
+        result = call_handler(job_id, tweet_url, layout, background, cropped)
 
     else:
         write_progress(job_id, {
