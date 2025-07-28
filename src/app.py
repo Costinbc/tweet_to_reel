@@ -8,6 +8,7 @@ import requests
 import logging, traceback
 from concurrent.futures import ThreadPoolExecutor
 from google.cloud import storage
+from google import auth
 from flask import Flask, jsonify, render_template, request, send_file
 from get_video_duration import get_video_duration
 
@@ -59,18 +60,35 @@ def _signed_urls(tweet_id: str, layout: str, background: str, cropped: bool):
         f"reels/{datetime.date.today():%Y/%m/%d}/"
         f"{tweet_id}_{layout}_{background}_{reel_cropped}.mp4"
     )
+
+    SCOPES = [
+        "https://www.googleapis.com/auth/devstorage.read_only",
+        "https://www.googleapis.com/auth/iam"
+    ]
+
+    credentials, project = auth.default(
+        scopes=SCOPES,
+    )
+    credentials.refresh(auth.transport.requests.Request())
+
+    storage_client = storage.Client(credentials=credentials)
+
     bucket = storage_client.bucket(BUCKET)
     blob = bucket.blob(obj)
 
     upload_url = blob.generate_signed_url(
         version="v4",
         expiration=datetime.timedelta(minutes=15),
+        service_account_email=credentials.service_account_email,
+        access_token=credentials.token,
         method="PUT",
         content_type="video/mp4")
 
     public_url = blob.generate_signed_url(
         version="v4",
         expiration=datetime.timedelta(hours=1),
+        service_account_email=credentials.service_account_email,
+        access_token=credentials.token,
         method="GET")
 
     return upload_url, public_url, obj
