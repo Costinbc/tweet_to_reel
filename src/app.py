@@ -120,14 +120,14 @@ def _wait_for_runpod(result_id: str, public_url: str, job_id: str):
 
         elif state in ("FAILED", "CANCELLED") or state.startswith("ERROR"):
             write_progress(job_id, {
-                "status": f"RunPod job {state}",
+                "status": f"job {state}",
                 "step":   "error",
             })
             break
 
         else:
             write_progress(job_id, {
-                "status": f"RunPod job {state.lower()}…",
+                "status": f"job {state.lower()}…",
                 "step":   "video",
             })
             time.sleep(2)
