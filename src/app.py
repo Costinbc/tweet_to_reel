@@ -93,6 +93,41 @@ def _signed_urls(tweet_id: str, layout: str, background: str, cropped: bool):
 
     return upload_url, public_url, obj
 
+def _wait_for_runpod(result_id: str, public_url: str, job_id: str):
+    status_url = f"https://api.runpod.ai/v2/{ENDPOINT_ID}/status/{result_id}"
+    headers    = {"Authorization": RUNPOD_API_KEY}
+
+    while True:
+        try:
+            r = requests.get(status_url, headers=headers, timeout=15)
+            r.raise_for_status()
+            state = r.json()["status"]
+        except Exception as e:
+            state = f"ERROR: {e}"
+
+        if state == "COMPLETED":
+            write_progress(job_id, {
+                "status": "Reel created.",
+                "step":   "done",
+                "redirect_url": f"/result/reel/{job_id}",
+                "public_url": public_url,
+            })
+            break
+
+        elif state in ("FAILED", "CANCELLED") or state.startswith("ERROR"):
+            write_progress(job_id, {
+                "status": f"RunPod job {state}",
+                "step":   "error",
+            })
+            break
+
+        else:
+            write_progress(job_id, {
+                "status": f"RunPod job {state.lower()}…",
+                "step":   "video",
+            })
+            time.sleep(2)
+
 def progress_path(job_id: str) -> str:
     return os.path.join(base_dir, f"progress_{job_id}.json")
 
@@ -158,8 +193,8 @@ def process_job(tweet_url: str, type: str, layout: str, background: str, cropped
             write_progress(job_id, {
                 "status": "RunPod job queued",
                 "step": "video",
-                "redirect_url": public_url
             })
+            _wait_for_runpod(result_id, public_url, job_id)
         except Exception as e:
             logging.exception("Job %s failed: %s", job_id, e)
             write_progress(job_id, {
@@ -223,7 +258,8 @@ def index():
 
 @app.route("/result/reel/<job_id>")
 def reel_result(job_id):
-    return render_template("download_reel.html", filename=f"{job_id}_reel.mp4")
+    data = load_progress(job_id)
+    return render_template("download_reel.html", gcs_url=data.get("public_url"))
 
 @app.route("/result/photo/<job_id>")
 def photo_result(job_id):
