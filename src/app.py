@@ -56,6 +56,7 @@ for name in ("STORAGE_BUCKET_NAME", "RUNPOD_ENDPOINT_ID", "RUNPOD_API_KEY"):
 
 def _signed_urls(tweet_id: str, layout: str, background: str, cropped: bool):
     reel_cropped = "cropped" if cropped else "uncropped"
+    filename = f"{tweet_id}_{layout}_{background}_{reel_cropped}.mp4"
     obj = (
         f"reels/{datetime.date.today():%Y/%m/%d}/"
         f"{tweet_id}_{layout}_{background}_{reel_cropped}.mp4"
@@ -89,7 +90,10 @@ def _signed_urls(tweet_id: str, layout: str, background: str, cropped: bool):
         expiration=datetime.timedelta(hours=1),
         service_account_email=credentials.service_account_email,
         access_token=credentials.token,
-        method="GET")
+        method="GET",
+        response_type="video/mp4",
+        response_disposition=f'attachment; filename="{filename}"'
+    )
 
     return upload_url, public_url, obj
 
