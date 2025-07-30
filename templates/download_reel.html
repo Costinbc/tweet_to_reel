@@ -11,14 +11,14 @@
   <div class="container">
     <h1>Your Reel is Ready</h1>
 
-    <video controls playsinline>
-      <source src="{{ url_for('download', filename=filename) }}" type="video/mp4">
-      Your browser does not support the video tag.
-    </video>
+     <video controls style="max-width:100%;height:auto">
+      <source src="{{ gcs_url }}" type="video/mp4">
+      <p>Your browser can’t play the video. <a href="{{ gcs_url }}">Download it</a>.</p>
+     </video>
 
-    <a class="download-link" href="{{ url_for('download', filename=filename) }}" download target="_blank">
-      ⬇️ Download Reel
-    </a>
+    <p class="mt-3">
+      <a class="btn btn-primary" href="{{ gcs_url }}" download>Download MP4</a>
+    </p>
 
     <p class="instructions">
       On iPhone: tap the button above, choose <strong>"Download"</strong>.<br>
