@@ -2,6 +2,10 @@
 
 **Tweet to Reel** converts tweets into vertical videos or formatted screenshots for Instagram, TikTok, and other platforms.
 
+> [!NOTE]  
+> In the process of moving the processing from Cloud Run to Runpod to increase concurrency and speed.
+> Might result in failing / wrong requests during testing.
+
 This project is a work in progress. Current features include:
 
 - Capture a screenshot of a tweet
