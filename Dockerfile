@@ -16,12 +16,9 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY . /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app
 
 USER appuser
 
-CMD exec gunicorn -k gthread -w 1 --threads 8 \
-    --timeout 0 --graceful-timeout 30 \
-    --bind :$PORT \
-    --access-logfile - --error-logfile - \
-    src.app:app
+CMD exec gunicorn --chdir /app -c gunicorn_conf.py 'src.app:app'

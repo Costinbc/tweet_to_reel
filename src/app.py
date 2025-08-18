@@ -5,12 +5,11 @@ import time
 import uuid
 import datetime
 import requests
-import logging, traceback
+import logging
 from concurrent.futures import ThreadPoolExecutor
 from google.cloud import storage
 from google import auth
 from flask import Flask, jsonify, render_template, request, send_file
-from get_video_duration import get_video_duration
 
 from dotenv import load_dotenv
 load_dotenv()
