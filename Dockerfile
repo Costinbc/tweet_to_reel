@@ -17,8 +17,9 @@ COPY . /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app
+    PYTHONPATH=/app \
+    PORT=8080
 
 USER appuser
 
-CMD exec gunicorn --chdir /app -c gunicorn_conf.py 'src.app:app'
+CMD ["/bin/sh","-c","exec gunicorn -c gunicorn_conf.py"]
