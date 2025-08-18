@@ -19,6 +19,7 @@ def download_tweet_image(tweet_type, link, id, output_path):
         "tweetId": tweet_id,
         "hideMetrics": True,
         "hideVerifiedIcon": False,
+        "showRepliedToTweet": True,
         "tweetFontSize": 2,
         "tweetBackgroundColor": "#fff",
         "hideQuoteTweet": False,
