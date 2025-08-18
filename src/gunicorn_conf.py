@@ -1,0 +1,9 @@
+bind = ":"
+workers = 1
+worker_class = "gthread"
+threads = 8
+timeout = 0
+graceful_timeout = 30
+accesslog = "-"
+errorlog = "-"
+loglevel = "info"
