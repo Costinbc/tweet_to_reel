@@ -40,11 +40,6 @@ def download_tweet_image(tweet_type, link, id, output_path):
     "modifications": modifications
     })
 
-    script_path = os.path.abspath(__file__)
-    project_root = os.path.abspath(os.path.join(script_path, "..", ".."))
-    downloads_dir = os.path.join(project_root, "downloads")
-    os.makedirs(downloads_dir, exist_ok=True)
-
     with open(output_path, 'wb') as file:
         file.write(response.content)
 
