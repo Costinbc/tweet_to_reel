@@ -17,10 +17,11 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 
 base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+data_root = os.getenv("T2R_DATA_DIR", "/tmp/t2r")
 template_dir = os.path.join(base_dir, "templates")
 static_dir = os.path.join(base_dir, "static")
-downloads_dir = os.path.join(base_dir, "downloads")
-results_dir = os.path.join(base_dir, "results")
+downloads_dir = os.path.join(data_root, "downloads")
+results_dir = os.path.join(data_root, "results")
 src_dir = os.path.join(base_dir, "src")
 
 os.makedirs(downloads_dir, exist_ok=True)
@@ -171,10 +172,6 @@ def process_job(tweet_url: str, type: str, layout: str, background: str, cropped
     img_raw = os.path.join(downloads_dir, f"{tweet_id}.png")
     img_cropped = os.path.join(downloads_dir, f"{tweet_id}_cropped.png")
     img_final = os.path.join(results_dir, f"{job_id}_photo.png")
-    video_path = os.path.join(downloads_dir, f"{tweet_id}_video.mp4")
-    reel_output = os.path.join(results_dir, f"{job_id}_reel.mp4")
-
-    reel_cropped = "cropped" if cropped else "uncropped"
 
     start_time = time.time()
     write_progress(job_id, {
