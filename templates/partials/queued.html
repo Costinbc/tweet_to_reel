@@ -1,0 +1,19 @@
+<div>
+  <div class="flex items-center gap-2 text-sm text-gray-600 mb-4">
+    <span>Job <code class="px-2 py-0.5 rounded bg-gray-100">{{ job_id }}</code> queued…</span>
+  </div>
+
+  <div id="progress-card"
+       hx-get="/progress-frag?job_id={{ job_id }}"
+       hx-trigger="load, every 1s"
+       hx-target="#progress-card"
+       hx-swap="outerHTML">
+    <div class="animate-pulse border rounded-xl p-4">
+      <div class="h-4 bg-gray-200 rounded w-1/3 mb-3"></div>
+      <div class="h-2 bg-gray-200 rounded w-2/3"></div>
+    </div>
+  </div>
+</div>
+<script>
+  document.getElementById('job-panel')?.classList.remove('hidden');
+</script>

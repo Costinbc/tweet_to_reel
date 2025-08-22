@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en" class="h-full bg-gray-50">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}Tweet to Reel{% endblock %}</title>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://unpkg.com/htmx.org@1.9.12" defer></script>
+    <script src="https://unpkg.com/alpinejs@3.x.x" defer></script>
+    {% block head %}{% endblock %}
+  </head>
+  <body class="h-full text-gray-900">
+    <div class="min-h-screen">
+      <header class="bg-white border-b">
+        <div class="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between">
+          <a href="/" class="font-semibold">Tweet to Reel</a>
+          <nav class="flex gap-4 text-sm">
+            <a href="/" class="hover:underline">Home</a>
+            <a href="/instructions" class="hover:underline">Instructions</a>
+            <a href="/tos" class="hover:underline">Terms</a>
+            <a href="/privacy" class="hover:underline">Privacy</a>
+          </nav>
+        </div>
+      </header>
+
+      <main class="mx-auto max-w-5xl px-4 py-8">
+        {% block content %}{% endblock %}
+      </main>
+
+      <footer class="mx-auto max-w-5xl px-4 py-10 text-xs text-gray-500">
+        &copy; {{ year or "2025" }} Tweet to Reel.
+      </footer>
+    </div>
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

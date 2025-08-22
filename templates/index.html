@@ -1,108 +1,75 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tweet to Reel</title>
-  <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon" />
-  <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-  <meta name="theme-color" content="#ffffff" />
-</head>
-<body>
-  <div class="container">
-    <h1>Tweet to Reel</h1>
+{% extends "base.html" %}
+{% block title %}Create a Reel{% endblock %}
+
+{% block content %}
+<div class="grid gap-6">
+
+  <section class="rounded-2xl bg-white shadow p-6"
+           x-data="{ type: 'photo' }">
+    <h1 class="text-xl font-semibold mb-4">Tweet to Reel</h1>
+
     {% if error %}
-      <div class="error">{{ error }}</div>
+      <div class="mb-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-3">
+        {{ error }}
+      </div>
     {% endif %}
-    <form id="tweetForm" method="POST" action="#">
-      <input type="text" name="url" placeholder="Enter tweet URL" required />
-      <fieldset class="mb-3">
-        <legend class="form-label fw-semibold mb-2">Output type</legend>
-        <div class="form-check form-check-inline">
-          <input  class="form-check-input" type="radio"
-                  id="optPhoto"  name="type" value="photo" checked>
-          <label class="form-check-label" for="optPhoto">Photo</label>
-        </div>
-        <div class="form-check form-check-inline">
-          <input  class="form-check-input" type="radio"
-                  id="optVideo"  name="type" value="video">
-          <label class="form-check-label" for="optVideo">Video</label>
+
+    <form id="tweetForm"
+          class="grid gap-4"
+          hx-post="/"
+          hx-target="#job-panel"
+          hx-swap="innerHTML">
+
+      <label class="grid gap-1">
+        <span class="text-sm font-medium">Tweet/X URL</span>
+        <input name="url" type="url" placeholder="https://x.com/..." required
+               class="border rounded-lg px-3 py-2 outline-none focus:ring w-full" />
+      </label>
+
+      <fieldset class="grid gap-2">
+        <legend class="text-sm font-medium">Output type</legend>
+        <div class="flex gap-6 items-center">
+          <label class="flex items-center gap-2">
+            <input type="radio" name="type" value="photo" x-model="type" checked />
+            <span>Photo</span>
+          </label>
+          <label class="flex items-center gap-2">
+            <input type="radio" name="type" value="video" x-model="type" />
+            <span>Video</span>
+          </label>
         </div>
       </fieldset>
-      <div id="videoOptions" class="hidden">
-        <div class="mb-3">
-          <label class="form-label fw-semibold">Layout</label>
-          <select class="form-select" name="layout">
-            <option value="video_bottom">Video bottom – image top</option>
-            <option value="video_top"    selected>Video top – image bottom</option>
-          </select>
-        </div>
 
-        <div class="mb-3">
-          <label class="form-label fw-semibold">Background</label>
-          <select class="form-select" name="background">
+      <div id="videoOptions" x-cloak x-show="type==='video'" class="grid gap-4">
+        <label class="grid gap-1">
+          <span class="text-sm font-medium">Layout</span>
+          <select class="border rounded-lg px-3 py-2" name="layout">
+            <option value="video_bottom">Video bottom – image top</option>
+            <option value="video_top" selected>Video top – image bottom</option>
+          </select>
+        </label>
+
+        <label class="grid gap-1">
+          <span class="text-sm font-medium">Background</span>
+          <select class="border rounded-lg px-3 py-2" name="background">
             <option value="white">White</option>
             <option value="blur">Blur</option>
           </select>
-        </div>
+        </label>
 
-        <div class="form-check form-switch mb-3">
-          <input  class="form-check-input" type="checkbox"
-                  id="cropVideo" name="cropped" value="1">
-          <label class="form-check-label" for="cropVideo">
-            Crop video to 1:1 before stacking
-          </label>
-        </div>
+        <label class="flex items-center gap-2">
+          <input class="h-4 w-4" type="checkbox" id="cropVideo" name="cropped" value="1">
+          <span class="text-sm">Crop video to 1:1 before stacking</span>
+        </label>
       </div>
-      <button type="submit">Generate</button>
+
+      <div class="flex gap-3 items-center">
+        <button type="submit" class="px-4 py-2 rounded-lg bg-black text-white">Generate</button>
+        <div id="form-status" class="text-sm text-gray-500"></div>
+      </div>
     </form>
-    <div id="status-message" class="status-message">Waiting for input tweet...</div>
-    <div id="time-left" class="time-left">Estimated time: -</div>
-  </div>
-  <footer>
-    &copy; {{ year or "2025" }} Tweet to Reel.
-  </footer>
-  <script>
-  const statusEl = document.getElementById('status-message');
-  const timeEl   = document.getElementById('time-left');
-  const form     = document.getElementById('tweetForm');
-  const optsBox  = document.getElementById('videoOptions');
-  const typeRadios = document.querySelectorAll('input[name="type"]');
+  </section>
 
-  typeRadios.forEach(radio => radio.addEventListener('change', () => {
-      if (document.getElementById('optVideo').checked) {
-          optsBox.classList.remove('hidden');
-          optsBox.classList.add('fade-in');
-      } else {
-          optsBox.classList.add('hidden');
-          optsBox.classList.remove('fade-in');
-      }
-  }));
-
-  form.addEventListener('submit', async function handleSubmit(e) {
-    e.preventDefault();
-    const res  = await fetch('/', { method: 'POST', body: new FormData(form) });
-    const data = await res.json();
-    pollProgress(data.job_id);
-    return false;
-  });
-
-  function pollProgress(jobId) {
-    fetch(`/progress?job_id=${jobId}&ts=${Date.now()}`)
-      .then(r => r.json())
-      .then(d => {
-        statusEl.textContent = `Status: ${d.status}`;
-        timeEl.textContent   = `Est. time left: ${d.time_left}`;
-        if (d.redirect_url) {
-          window.location.href = d.redirect_url;
-        } else {
-          setTimeout(() => pollProgress(jobId), 500);
-        }
-      })
-      .catch(() => setTimeout(() => pollProgress(jobId), 1000));
-  }
-  </script>
-
-</body>
-</html>
+  <section id="job-panel" class="rounded-2xl bg-white shadow p-6 hidden"></section>
+</div>
+{% endblock %}

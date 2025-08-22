@@ -9,7 +9,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from google.cloud import storage
 from google import auth
-from flask import Flask, jsonify, render_template, request, send_file
+from flask import Flask, jsonify, render_template, request, send_file, make_response
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -242,16 +242,27 @@ def process_job(tweet_url: str, type: str, layout: str, background: str, cropped
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
-        tweet_url = request.form.get("url")
-        type = request.form.get("type")
-        layout = request.form.get("layout")
-        background = request.form.get("background")
-        cropped = request.form.get("cropped") == "1"
+        tweet_url   = request.form.get("url")
+        type        = request.form.get("type")
+        layout      = request.form.get("layout")
+        background  = request.form.get("background")
+        cropped     = request.form.get("cropped") == "1"
+
         if not tweet_url:
-            return render_template("index.html", error="Please enter a tweet URL")
+            if request.headers.get("HX-Request"):
+                resp = make_response(render_template("index.html", error="Please enter a tweet URL"))
+                resp.headers["Cache-Control"] = "no-store"
+                return resp
+            return jsonify(error="Please enter a tweet URL"), 400
 
         job_id = uuid.uuid4().hex[:8]
-        future = executor.submit(process_job, tweet_url, type, layout, background, cropped, job_id)
+        executor.submit(process_job, tweet_url, type, layout, background, cropped, job_id)
+
+        if request.headers.get("HX-Request"):
+            resp = make_response(render_template("partials/queued.html", job_id=job_id))
+            resp.headers["Cache-Control"] = "no-store"
+            return resp
+
         return jsonify(job_id=job_id, type=type, layout=layout, background=background, cropped=cropped), 202
 
     return render_template("index.html")
@@ -271,52 +282,58 @@ def download(filename):
 
 @app.route("/health")
 def health():
-    return "App is running!"
+    return "ok", 200
 
-@app.route("/progress")
-def progress():
+@app.route("/progress-frag")
+def progress_frag():
     job_id = request.args.get("job_id")
+
+    def no_cache(resp):
+        resp.headers["Cache-Control"] = "no-store"
+        return resp
+
     if not job_id:
-        resp = jsonify(status="Waiting...", time_left="-")
-        resp.headers["Cache-Control"] = "no-store"
-        return resp
+        return no_cache(make_response(render_template(
+            "partials/progress.html",
+            job_id="", status="Waiting…", time_left="-", percent=0, show_preview=False
+        )))
 
-    data = load_progress(job_id)
-    if not data:
-        resp = jsonify(status="Starting...", time_left="Estimating...")
-        resp.headers["Cache-Control"] = "no-store"
-        return resp
-
-    status = data.get("status", "Working...")
+    data = load_progress(job_id) or {}
+    status     = data.get("status", "Working…")
     start_time = data.get("start_time", time.time())
-    video_duration = data.get("video_duration", 0)
-    step = data.get("step", "start")
-    type_ = data.get("type", "video")
+    video_dur  = data.get("video_duration", 0)
+    type_      = data.get("type", "video")
 
-    no_video_duration = False
-
+    base = dict(step_weights)
     if type_ == "photo":
-        step_weights["reel"] = 0
-        step_weights["video"] = 0
+        base["reel"] = 0
+        base["video"] = 0
     else:
-        if video_duration:
-            step_weights["reel"] = int(video_duration * 0.9)
-        else:
-            step_weights["reel"] = 0
-            no_video_duration = True
+        base["reel"] = int(video_dur * 0.9) if video_dur else 0
 
-    elapsed = time.time() - start_time
-    est_total = sum(step_weights.values())
-    est_remaining = max(int(est_total - elapsed), 0)
-    if no_video_duration:
-        est_remaining = 0
+    elapsed   = max(time.time() - start_time, 0)
+    est_total = max(sum(base.values()), 1)
+    percent   = int(min(max((elapsed / est_total) * 100, 1), 95))
 
-    resp = jsonify(
+    redirect_url = data.get("redirect_url")
+    if redirect_url:
+        resp = make_response("")
+        resp.headers["HX-Redirect"] = redirect_url
+        return no_cache(resp)
+
+    return no_cache(make_response(render_template(
+        "partials/progress.html",
+        job_id=job_id,
         status=status,
-        time_left=f"~{est_remaining}s" if est_remaining else "Wait...",
-        redirect_url=data.get("redirect_url"),
-    )
-    resp.headers["Cache-Control"] = "no-store"
+        time_left=data.get("time_left", "~"),
+        percent=percent,
+        show_preview=True
+    )))
+
+@app.after_request
+def add_cache_headers(resp):
+    if request.path.startswith("/static/") and "styles.css" in request.path:
+        resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
     return resp
 
 if __name__ == "__main__":

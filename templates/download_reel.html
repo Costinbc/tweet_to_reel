@@ -1,29 +1,50 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Your Reel is Ready</title>
-  <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" />
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-</head>
-<body>
-  <div class="container">
-    <h1>Your Reel is Ready</h1>
+{% extends "base.html" %}
+{% block title %}Your Reel is Ready{% endblock %}
 
-     <video controls style="max-width:100%;height:auto">
-      <source src="{{ gcs_url }}" type="video/mp4">
-      <p>Your browser can’t play the video. <a href="{{ gcs_url }}">Download it</a>.</p>
-     </video>
+{% block content %}
+<div class="min-h-[60vh] grid place-items-center">
+  <section class="w-full max-w-lg rounded-2xl bg-white shadow p-6"
+           x-data="{ copied:false }">
+    <header class="mb-4">
+      <h1 class="text-xl font-semibold flex items-center gap-2">
+        <span class="text-2xl"></span>Your Reel is Ready
+      </h1>
+      <p class="text-sm text-gray-500">Preview below, then download or open the file.</p>
+    </header>
 
-    <p class="mt-3">
-      <a class="btn btn-primary" href="{{ gcs_url }}" download>Download MP4</a>
-    </p>
+    <div class="rounded-lg overflow-hidden bg-black">
+      <video controls playsinline
+             class="w-full aspect-[9/16] object-contain bg-black">
+        <source src="{{ gcs_url }}" type="video/mp4">
+        Your browser can’t play the video. <a class="underline" href="{{ gcs_url }}">Open it</a>.
+      </video>
+    </div>
 
-    <p class="instructions">
-      On iPhone: tap the button above, choose <strong>"Download"</strong>.<br>
-      Then open from <strong>Downloads</strong> in Safari, tap <strong>Share</strong>, and <strong>Save Video</strong> to Photos.
-    </p>
-  </div>
-</body>
-</html>
+    <div class="mt-5 grid gap-3 sm:grid-cols-3">
+      <a class="px-4 py-2 rounded-lg bg-black text-white text-center"
+         href="{{ gcs_url }}" download>
+        Download MP4
+      </a>
+      <a class="px-4 py-2 rounded-lg border text-center"
+         href="{{ gcs_url }}" target="_blank" rel="noopener">
+        Open Link
+      </a>
+      <button type="button"
+              class="px-4 py-2 rounded-lg border text-center"
+              @click="navigator.clipboard.writeText('{{ gcs_url }}'); copied=true; setTimeout(()=>copied=false,1200)">
+        <span x-show="!copied">Copy Link</span>
+        <span x-show="copied">Copied ✓</span>
+      </button>
+    </div>
+
+    <div class="mt-4 text-xs text-gray-500 space-y-1">
+      <p><b>iPhone tip:</b> tap <b>Open Link</b>, then Share → <b>Save Video</b>.</p>
+      <p>Some mobile browsers ignore the <code>download</code> attribute for cross-origin files; using <b>Open Link</b> is more reliable.</p>
+    </div>
+
+    <div class="mt-6">
+      <a class="text-sm underline text-gray-600" href="/">← Back to Home</a>
+    </div>
+  </section>
+</div>
+{% endblock %}

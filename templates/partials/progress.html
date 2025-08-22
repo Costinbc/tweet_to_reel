@@ -1,0 +1,21 @@
+<div id="progress-card"
+     hx-get="/progress-frag?job_id={{ job_id }}"
+     hx-trigger="load delay:500ms, every 1s"
+     hx-swap="outerHTML"
+     class="border rounded-xl p-4 grid gap-3">
+
+  <div class="flex items-center justify-between">
+    <div class="text-sm text-gray-600">{{ status }}</div>
+    <div class="text-xs text-gray-500">{{ time_left }}</div>
+  </div>
+
+  <div class="w-full bg-gray-200 rounded-full h-2">
+    <div class="bg-black h-2 rounded-full transition-all" style="width: {{ percent }}%"></div>
+  </div>
+
+  {% if show_preview %}
+  <div class="text-xs text-gray-500">
+    When finished, you’ll be redirected to the download page.
+  </div>
+  {% endif %}
+</div>

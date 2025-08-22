@@ -1,3 +1,12 @@
+FROM node:20-alpine AS ui
+WORKDIR /app
+COPY package.json package-lock.json* ./
+RUN npm ci
+COPY tailwind.config.js ./
+COPY static ./static
+COPY templates ./templates
+RUN npm run build:css
+
 FROM python:3.12-slim
 
 RUN apt-get update && \
@@ -14,6 +23,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 COPY . /app
+COPY --from=ui /app/static/styles.css /app/static/styles.css
 RUN mkdir -p /app/downloads /app/results && chown -R appuser:appuser /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
