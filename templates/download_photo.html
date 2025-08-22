@@ -24,11 +24,6 @@
          download>
         Download
       </a>
-      <a class="px-4 py-2 rounded-lg border text-center"
-         href="{{ url_for('download', filename=filename) }}"
-         target="_blank" rel="noopener">
-        Open Link
-      </a>
       <button type="button"
               class="px-4 py-2 rounded-lg border text-center"
               @click="navigator.clipboard.writeText('{{ url_for('download', filename=filename) }}'); copied=true; setTimeout(()=>copied=false,1200)">

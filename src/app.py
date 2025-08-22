@@ -191,7 +191,7 @@ def process_job(tweet_url: str, type: str, layout: str, background: str, cropped
             result_id, public_url = call_handler(job_id, tweet_url, layout, background, cropped)
             logging.info("RunPod job %s enqueued url=%s", result_id, public_url)
             write_progress(job_id, {
-                "status": "RunPod job queued",
+                "status": "Job queued",
                 "step": "video",
             })
             _wait_for_runpod(result_id, public_url, job_id)
