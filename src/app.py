@@ -304,7 +304,7 @@ def progress_frag():
     video_dur  = data.get("video_duration", 0)
     type_      = data.get("type", "video")
 
-    base = dict(step_weights)  # copy, don't mutate globals
+    base = dict(step_weights)
     if type_ == "photo":
         base["reel"] = 0
         base["video"] = 0
