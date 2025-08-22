@@ -25,10 +25,6 @@
          href="{{ gcs_url }}" download>
         Download MP4
       </a>
-      <a class="px-4 py-2 rounded-lg border text-center"
-         href="{{ gcs_url }}" target="_blank" rel="noopener">
-        Open Link
-      </a>
       <button type="button"
               class="px-4 py-2 rounded-lg border text-center"
               @click="navigator.clipboard.writeText('{{ gcs_url }}'); copied=true; setTimeout(()=>copied=false,1200)">
@@ -38,8 +34,7 @@
     </div>
 
     <div class="mt-4 text-xs text-gray-500 space-y-1">
-      <p><b>iPhone tip:</b> tap <b>Open Link</b>, then Share → <b>Save Video</b>.</p>
-      <p>Some mobile browsers ignore the <code>download</code> attribute for cross-origin files; using <b>Open Link</b> is more reliable.</p>
+      <p><b>iPhone tip:</b> tap <b>Download</b>, then Share → <b>Save Video</b>.</p>
     </div>
 
     <div class="mt-6">
