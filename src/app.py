@@ -210,7 +210,7 @@ def process_job(tweet_url: str, type: str, layout: str, background: str, cropped
             "video_duration": 0,
             "type": "photo",
         })
-        subprocess.run(["python", screenshot_py, "photo", tweet_url, img_raw], check=True)
+        subprocess.run(["python", screenshot_py, "photo", background, tweet_url, img_raw], check=True)
 
         write_progress(job_id, {
             "status": "Cropping image...",
@@ -228,10 +228,10 @@ def process_job(tweet_url: str, type: str, layout: str, background: str, cropped
             "video_duration": 0,
             "type": "photo",
         })
-        subprocess.run(["python", crop_py, "pad_photo", img_cropped, img_final], check=True)
+        subprocess.run(["python", crop_py, "pad_photo", background, img_cropped, img_final], check=True)
 
         write_progress(job_id, {
-            "status": "Reel created.",
+            "status": "Image created.",
             "step": "done",
             "start_time": start_time,
             "video_duration": 0,
