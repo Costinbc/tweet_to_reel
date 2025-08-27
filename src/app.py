@@ -125,12 +125,27 @@ def _wait_for_runpod(result_id: str, public_url: str, job_id: str):
             })
             break
 
-        else:
+        elif state == "in queue":
             write_progress(job_id, {
-                "status": f"job {state.lower()}…",
+                "status": f"job queued…",
                 "step":   "video",
             })
             time.sleep(2)
+
+        elif state.startswith("Estimated"):
+            time_left = state.split("Estimated time:")[-1].strip().split(" ")[0]
+            write_progress(job_id, {
+                "status": f"Processing video…",
+                "step":   "video",
+                "time_left": time_left,
+            })
+
+        else:
+            write_progress(job_id, {
+                "status": f"Processing video…",
+                "step":   "video",
+            })
+
 
 def progress_path(job_id: str) -> str:
     return os.path.join(base_dir, f"progress_{job_id}.json")
