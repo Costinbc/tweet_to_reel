@@ -102,10 +102,12 @@ def _wait_for_runpod(result_id: str, public_url: str, job_id: str):
     headers    = {"Authorization": RUNPOD_API_KEY}
 
     while True:
+        output = "no output yet"
         try:
             r = requests.get(status_url, headers=headers, timeout=15)
             r.raise_for_status()
             state = r.json()["status"]
+            output = r.json().get("output", {})
         except Exception as e:
             state = f"ERROR: {e}"
 
@@ -124,27 +126,32 @@ def _wait_for_runpod(result_id: str, public_url: str, job_id: str):
                 "step":   "error",
             })
             break
-
-        elif state == "in queue":
-            write_progress(job_id, {
-                "status": f"job queued…",
-                "step":   "video",
-            })
-            time.sleep(2)
-
-        elif state.startswith("Estimated"):
-            time_left = state.split("Estimated time:")[-1].strip().split(" ")[0]
-            write_progress(job_id, {
-                "status": f"Processing video…",
-                "step":   "video",
-                "time_left": time_left,
-            })
-
         else:
             write_progress(job_id, {
-                "status": f"Processing video…",
-                "step":   "video",
+                "status": f"{state}",
+                "output": f"{output}",
             })
+        # elif state == "IN_QUEUE":
+        #     write_progress(job_id, {
+        #         "status": f"job queued…",
+        #         "step":   "video",
+        #     })
+        #     time.sleep(2)
+        #
+        # elif state.startswith("Estimated"):
+        #     print(state)
+        #     time_left = state.split("Estimated time:")[-1].strip().split(" ")[0]
+        #     write_progress(job_id, {
+        #         "status": f"Processing video…",
+        #         "step":   "video",
+        #         "time_left": time_left,
+        #     })
+        #
+        # else:
+        #     write_progress(job_id, {
+        #         "status": f"Processing video…",
+        #         "step":   "video",
+        #     })
 
 
 def progress_path(job_id: str) -> str:
@@ -203,8 +210,6 @@ def process_job(tweet_url: str, type: str, layout: str, background: str, cropped
     if type == "video":
         try:
             logging.info("Starting VIDEO job %s", job_id)
-            print("Calling handler for job", job_id)
-            print(f"Parameters: tweet_url={tweet_url}, layout={layout}, background={background}, cropped={cropped}")
             result_id, public_url = call_handler(job_id, tweet_url, layout, background, cropped)
             logging.info("RunPod job %s enqueued url=%s", result_id, public_url)
             write_progress(job_id, {
@@ -265,7 +270,6 @@ def index():
         background  = request.form.get("background-photo") if type == "photo" else request.form.get("background-video")
         cropped     = request.form.get("cropped") == "1"
 
-        print(f"Received form: url={tweet_url}, type={type}, layout={layout}, background={background}, cropped={cropped}")
         if not tweet_url:
             if request.headers.get("HX-Request"):
                 resp = make_response(render_template("index.html", error="Please enter a tweet URL"))
