@@ -127,10 +127,13 @@ def _wait_for_runpod(result_id: str, public_url: str, job_id: str):
             })
             break
         else:
-            write_progress(job_id, {
-                "status": f"{state}",
-                "output": f"{output}",
-            })
+            if output != "no output yet":
+                write_progress(job_id, {"status": f"output: {output}"})
+            else:
+                write_progress(job_id, {
+                    "status": f"{state}",
+                    "output": f"{output}",
+                })
         # elif state == "IN_QUEUE":
         #     write_progress(job_id, {
         #         "status": f"job queued…",
