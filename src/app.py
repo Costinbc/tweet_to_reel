@@ -128,7 +128,7 @@ def _wait_for_runpod(result_id: str, public_url: str, job_id: str):
             break
         else:
             if output != "no output yet":
-                time_left = output.split("Estimated time:")[-1].strip().split(" ")[0]
+                time_left = output.get().split("Estimated time:")[-1].strip().split(" ")[0]
                 write_progress(job_id, {
                     "status": f"Processing video…",
                     "step":   "video",
