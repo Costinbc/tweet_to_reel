@@ -102,12 +102,13 @@ def _wait_for_runpod(result_id: str, public_url: str, job_id: str):
     headers    = {"Authorization": RUNPOD_API_KEY}
 
     while True:
-        output = "no output yet"
+        output = ""
         try:
             r = requests.get(status_url, headers=headers, timeout=15)
             r.raise_for_status()
             state = r.json()["status"]
-            output = r.json().get("output", {})
+            if not output:
+                output = r.json().get("output", {})
         except Exception as e:
             state = f"ERROR: {e}"
 
@@ -127,17 +128,18 @@ def _wait_for_runpod(result_id: str, public_url: str, job_id: str):
             })
             break
         else:
-            if output and output != "no output yet":
-                time_left = output.split("Estimated time:")[-1].strip().split(" ")[0]
+            if output:
+                start_time = load_progress(job_id).get("start_time", time.time())
+                time_left = int(output.split("Estimated time:")[-1].strip().split(" ")[0]) - int(time.time() - start_time)
                 write_progress(job_id, {
                     "status": f"Processing video…",
+                    "start_time": start_time,
                     "step":   "video",
                     "time_left": time_left,
                 })
             else:
                 write_progress(job_id, {
                     "status": f"{state}",
-                    "output": f"{output}",
                 })
         # elif state == "IN_QUEUE":
         #     write_progress(job_id, {
