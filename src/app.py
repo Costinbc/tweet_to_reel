@@ -362,7 +362,7 @@ def progress_frag():
         est_total = elapsed + time_left
     else:
         est_total = 25
-    percent   = base_percentage + min(int((elapsed / est_total) * 100), 100 - base_percentage)
+    percent   = base_percentage + min(int((elapsed / est_total) * 100), 95 - base_percentage)
 
     redirect_url = data.get("redirect_url")
     if redirect_url:
