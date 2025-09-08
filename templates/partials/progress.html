@@ -6,7 +6,19 @@
 
   <div class="flex items-center justify-between">
     <div class="text-sm text-gray-600">{{ status }}</div>
-    <div class="text-xs text-gray-500">{{ time_left }}</div>
+    <div class="text-xs text-gray-500">
+      {% if time_left is number and time_left > 0 %}
+        {% set minutes = (time_left / 60) | int %}
+        {% set seconds = (time_left % 60) | int %}
+        {% if minutes > 0 %}
+          {{ minutes }}m, {{ seconds }}s
+        {% else %}
+          {{ seconds }}s
+        {% endif %}
+      {% else %}
+        {{ time_left }}
+      {% endif %}
+  </div>
   </div>
 
   <div class="w-full bg-gray-200 rounded-full h-2">
