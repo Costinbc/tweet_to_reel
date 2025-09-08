@@ -343,6 +343,7 @@ def progress_frag():
     video_dur  = data.get("video_duration", 0)
     type_      = data.get("type", "video")
     step = data.get("step", "start")
+    time_left = data.get("time_left", "~")
 
     base = dict(step_weights)
     if type_ == "photo":
@@ -357,7 +358,10 @@ def progress_frag():
         base_percentage = 5
 
     elapsed   = max(time.time() - start_time, 0)
-    est_total = max(sum(base.values()), 1)
+    if time_left != "~" and time_left > 0:
+        est_total = elapsed + time_left
+    else:
+        est_total = 25
     percent   = base_percentage + min(int((elapsed / est_total) * 100), 100 - base_percentage)
 
     redirect_url = data.get("redirect_url")
