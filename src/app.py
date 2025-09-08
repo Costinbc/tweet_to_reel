@@ -138,9 +138,16 @@ def _wait_for_runpod(result_id: str, public_url: str, job_id: str):
                     "time_left": time_left,
                 })
             else:
-                write_progress(job_id, {
-                    "status": f"{state}",
-                })
+                if state == "IN_PROGRESS":
+                    write_progress(job_id, {
+                        "status": f"Processing video…",
+                        "step":   "video",
+                    })
+                elif state == "IN_QUEUE":
+                    write_progress(job_id, {
+                        "status": f"job queued…",
+                        "step":   "queue",
+                    })
         # elif state == "IN_QUEUE":
         #     write_progress(job_id, {
         #         "status": f"job queued…",
@@ -335,6 +342,7 @@ def progress_frag():
     start_time = data.get("start_time", time.time())
     video_dur  = data.get("video_duration", 0)
     type_      = data.get("type", "video")
+    step = data.get("step", "start")
 
     base = dict(step_weights)
     if type_ == "photo":
@@ -343,9 +351,14 @@ def progress_frag():
     else:
         base["reel"] = int(video_dur * 0.9) if video_dur else 0
 
+    if step == 'video':
+        base_percentage = 30
+    else:
+        base_percentage = 5
+
     elapsed   = max(time.time() - start_time, 0)
     est_total = max(sum(base.values()), 1)
-    percent   = int(min(max((elapsed / est_total) * 100, 1), 95))
+    percent   = base_percentage + min(int((elapsed / est_total) * 100), 100 - base_percentage)
 
     redirect_url = data.get("redirect_url")
     if redirect_url:
