@@ -358,8 +358,8 @@ def progress_frag():
         base_percentage = 5
 
     elapsed   = max(time.time() - start_time, 0)
-    if time_left != "~" and time_left > 0:
-        est_total = elapsed + time_left
+    if time_left != "~" and int(time_left) > 0:
+        est_total = elapsed + int(time_left)
     else:
         est_total = 25
     percent   = base_percentage + min(int((elapsed / est_total) * 100), 95 - base_percentage)
