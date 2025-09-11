@@ -2,6 +2,24 @@
 {% block title %}Create a Reel{% endblock %}
 
 {% block content %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Option Guide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media (max-width: 640px) {
+            .mobile-text {
+                font-size: 0.9rem;
+                line-height: 1.6;
+            }
+            .mobile-padding {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
 <div class="grid gap-6">
 
   <section class="rounded-2xl bg-white shadow p-6"
@@ -82,5 +100,39 @@
   </section>
 
   <section id="job-panel" class="rounded-2xl bg-white shadow p-6 hidden"></section>
+  <section class="rounded-2xl sm:rounded-3xl bg-white shadow-lg p-4 sm:p-6 md:p-8 border border-gray-100">
+    <div class="flex items-center gap-3 mb-4 sm:mb-6">
+      <div class="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg sm:rounded-xl flex items-center justify-center">
+        <svg class="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      </div>
+      <h2 class="text-lg sm:text-xl font-bold text-gray-900">Quick Start Guide</h2>
+    </div>
+
+    <div class="grid gap-3 sm:gap-4 md:grid-cols-3">
+      <div class="flex gap-3 p-3 sm:p-4 rounded-xl bg-gray-50 border border-gray-200">
+        <div class="w-6 h-6 sm:w-8 sm:h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs sm:text-sm font-bold flex-shrink-0">1</div>
+        <div>
+          <h4 class="font-semibold text-sm sm:text-base text-gray-900 mb-1">Paste Tweet URL</h4>
+          <p class="text-xs sm:text-sm text-gray-600">Copy the link from any public tweet with or without video</p>
+        </div>
+      </div>
+      <div class="flex gap-3 p-3 sm:p-4 rounded-xl bg-gray-50 border border-gray-200">
+        <div class="w-6 h-6 sm:w-8 sm:h-8 bg-purple-500 rounded-full flex items-center justify-center text-white text-xs sm:text-sm font-bold flex-shrink-0">2</div>
+        <div>
+          <h4 class="font-semibold text-sm sm:text-base text-gray-900 mb-1">Choose Options</h4>
+          <p class="text-xs sm:text-sm text-gray-600">Select output type, layout, and background style</p>
+        </div>
+      </div>
+      <div class="flex gap-3 p-3 sm:p-4 rounded-xl bg-gray-50 border border-gray-200">
+        <div class="w-5 h-5 sm:w-6 sm:h-6 bg-green-500 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">3</div>
+        <div>
+          <h4 class="font-semibold text-sm sm:text-base text-gray-900 mb-1">Download & Share</h4>
+          <p class="text-xs sm:text-sm text-gray-600">Get your optimized content ready for social media</p>
+        </div>
+      </div>
+    </div>
+  </section>
 </div>
 {% endblock %}

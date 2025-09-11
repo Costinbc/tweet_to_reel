@@ -379,6 +379,10 @@ def progress_frag():
         show_preview=True
     )))
 
+@app.route("/instructions")
+def how_it_works():
+    return render_template("instructions.html")
+
 @app.after_request
 def add_cache_headers(resp):
     if request.path.startswith("/static/") and "styles.css" in request.path:
