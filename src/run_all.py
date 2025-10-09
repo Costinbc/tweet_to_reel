@@ -2,7 +2,7 @@ import subprocess
 import sys
 import os
 
-def run(type: str, tweet_url: str, reel_type = None):
+def run(type: str, tweet_url: str, reel_type = None, reel_layout = None, crop = None):
     tweet_id = tweet_url.split("/")[-1]
 
     script_path = os.path.abspath(__file__)
@@ -28,23 +28,23 @@ def run(type: str, tweet_url: str, reel_type = None):
 
     if type == "video":
         print("Running screenshot.sh to download tweet screenshot...")
-        subprocess.run(["python", screenshot_py, type, tweet_url, img_raw], check=True)
+        subprocess.run(["python", screenshot_py, type, reel_type, tweet_url, img_raw], check=True)
         print("Verifying image exists:", os.path.exists(img_raw), "|", img_raw)
 
         print("Extracting only tweet text...")
         subprocess.run(["python", crop_py, "tweet_card", reel_type, img_raw, img_final], check=True)
 
         print("Downloading tweet video...")
-        subprocess.run(["python", video_dl_py, tweet_url], check=True)
+        subprocess.run(["python", video_dl_py, tweet_url, video_path], check=True)
         print("Done! Tweet video downloaded.")
 
         print("Creating the reel...")
-        subprocess.run(["python", assemble_py, reel_type, img_final, video_path, reel_output], check=True)
+        subprocess.run(["python", assemble_py, reel_layout, reel_type, crop, img_final, video_path, reel_output], check=True)
         print(f"Done! Reel created as {reel_output}")
 
     elif type == "photo":
         print("Downloading tweet screenshot...")
-        subprocess.run(["python", screenshot_py, type, tweet_url, img_raw], check=True)
+        subprocess.run(["python", screenshot_py, type, reel_type, tweet_url, img_raw], check=True)
         print("Verifying image exists:", os.path.exists(img_raw), "|", img_raw)
 
         print("Cropping tweet...")
@@ -59,11 +59,13 @@ def run(type: str, tweet_url: str, reel_type = None):
         sys.exit(1)
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
-        print("Usage: python run_all.py <result_type> [<reel_type>] <tweet_url>")
+    if len(sys.argv) < 4:
+        print("Usage: python run_all.py <result_type> [<reel_type>] [<reel_layout>] [<crop>] <tweet_url>")
         sys.exit(1)
 
     result_type = sys.argv[1]
     reel_type = sys.argv[2] if len(sys.argv) > 3 else None
-    tweet_url = sys.argv[3] if len(sys.argv) > 3 else sys.argv[2]
-    run(result_type, tweet_url, reel_type)
+    reel_layout = sys.argv[3] if len(sys.argv) > 3 else None
+    crop = sys.argv[4] if len(sys.argv) > 3 else None
+    tweet_url = sys.argv[5] if len(sys.argv) > 3 else sys.argv[2]
+    run(result_type, tweet_url, reel_type, reel_layout, crop)
