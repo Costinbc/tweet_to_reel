@@ -3,8 +3,9 @@
 **Tweet to Reel** converts tweets into vertical videos or formatted screenshots for Instagram, TikTok, and other platforms.
 
 > [!NOTE]  
-> For local run the web app supports photo processing only.
-> For local video creation use [CUDA worker container](https://github.com/Costinbc/tweet-to-reel-worker)
+> For local run the web app supports photo processing only. \
+> You can create videos using the run_all script. \
+> To use CUDA processing locally, refer to [CUDA worker container](https://github.com/Costinbc/tweet-to-reel-worker)
 
 This project is a work in progress. Current features include:
 
@@ -26,10 +27,12 @@ You can run the project in two ways:
 
 - Via script:
   ```
-  python src/run_all.py <result_type> [<reel_type>] <tweet_url>
+  python src/run_all.py <result_type> <background_type> [<reel_layout>] [<crop>] <tweet_url>
   ```
   result_type: video/photo \
-  reel_type: white/blur - not needed if result_type is photo
+  background_type: white/blur \
+  reel_layout: video_top/video_bottom - not needed if result_type is photo \
+  crop: cropped/uncropped - not needed if result_type is photo
 
 - Using the web app:
   ```
