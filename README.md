@@ -3,8 +3,8 @@
 **Tweet to Reel** converts tweets into vertical videos or formatted screenshots for Instagram, TikTok, and other platforms.
 
 > [!NOTE]  
-> In the process of moving the processing from Cloud Run to Runpod to increase concurrency and speed.
-> Might result in failing / wrong requests during testing.
+> For local run the web app supports photo processing only.
+> For local video creation use [CUDA worker container](https://github.com/Costinbc/tweet-to-reel-worker)
 
 This project is a work in progress. Current features include:
 
@@ -12,10 +12,13 @@ This project is a work in progress. Current features include:
 - Crop and clean up the tweet image
 - Download video content from the tweet
 - Combine image and video into a 1080x1920 reel using FFmpeg
-- Reels can either have white or blurred backgrounds
+- Reels can have white, black, or blurred backgrounds
 - Progress status and estimated time remaining
 - Generate static tweet images sized for Instagram (1080x1350)
 - Mobile-friendly web interface with download links
+
+### Requirements
+- Orshot API key for tweet screenshot generation
 
 ### How to Use
 
@@ -45,11 +48,11 @@ You can run the project in two ways:
 ### Known limitations
 
 - No retry feature for failed steps.
-- Videos are automatically cropped to 1080x1080, possibly leaving out important content.
+- Local run limited to photo generation with the web app or running in Docker terminal using the worker repo.
 - No mobile app; results must first be downloaded, then saved to the gallery.
 
 ### Planned features/fixes
 
-- Improve estimated time remaining accuracy.
+- Retry feature for failed steps
 
 More features and improvements coming soon.
