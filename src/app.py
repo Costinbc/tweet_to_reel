@@ -148,27 +148,6 @@ def _wait_for_runpod(result_id: str, public_url: str, job_id: str):
                         "status": f"job queued…",
                         "step":   "queue",
                     })
-        # elif state == "IN_QUEUE":
-        #     write_progress(job_id, {
-        #         "status": f"job queued…",
-        #         "step":   "video",
-        #     })
-        #     time.sleep(2)
-        #
-        # elif state.startswith("Estimated"):
-        #     print(state)
-        #     time_left = state.split("Estimated time:")[-1].strip().split(" ")[0]
-        #     write_progress(job_id, {
-        #         "status": f"Processing video…",
-        #         "step":   "video",
-        #         "time_left": time_left,
-        #     })
-        #
-        # else:
-        #     write_progress(job_id, {
-        #         "status": f"Processing video…",
-        #         "step":   "video",
-        #     })
 
 
 def progress_path(job_id: str) -> str:
@@ -206,8 +185,8 @@ def call_handler(job_id: str, tweet_url: str, layout: str, background: str, crop
     r.raise_for_status()
     return r.json()["id"], public_url
 
-def process_job(tweet_url: str, type: str, layout: str, background: str, cropped: bool, job_id: str):
-    tweet_id = tweet_url.rstrip("/").split("/")[-1]
+def process_job(tweet_url: str, type: str, layout: str, show_replied_to_tweet: str, background: str, cropped: bool, job_id: str):
+    tweet_id = tweet_url.rstrip("/").split("/")[-1].split("?")[0]
     img_raw = os.path.join(downloads_dir, f"{tweet_id}.png")
     img_cropped = os.path.join(downloads_dir, f"{tweet_id}_cropped.png")
     img_final = os.path.join(results_dir, f"{job_id}_photo.png")
@@ -220,6 +199,7 @@ def process_job(tweet_url: str, type: str, layout: str, background: str, cropped
         "video_duration": 0,
         "type": type,
         "layout": layout,
+        "show_replied_to_tweet": show_replied_to_tweet,
         "background": background,
         "cropped": cropped,
     })
@@ -249,7 +229,7 @@ def process_job(tweet_url: str, type: str, layout: str, background: str, cropped
             "video_duration": 0,
             "type": "photo",
         })
-        subprocess.run(["python", screenshot_py, "photo", background, tweet_url, img_raw], check=True)
+        subprocess.run(["python", screenshot_py, "photo", show_replied_to_tweet, background, tweet_url, img_raw], check=True)
 
         write_progress(job_id, {
             "status": "Cropping image...",
@@ -281,11 +261,12 @@ def process_job(tweet_url: str, type: str, layout: str, background: str, cropped
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
-        tweet_url   = request.form.get("url")
-        type        = request.form.get("type")
-        layout      = request.form.get("layout")
-        background  = request.form.get("background-photo") if type == "photo" else request.form.get("background-video")
-        cropped     = request.form.get("cropped") == "1"
+        tweet_url = request.form.get("url")
+        type = request.form.get("type")
+        layout = request.form.get("layout")
+        background = request.form.get("background-photo") if type == "photo" else request.form.get("background-video")
+        show_replied_to_tweet = request.form.get("show_replied_to_tweet") if type == "photo" else 'false'
+        cropped = request.form.get("cropped") == "1"
 
         if not tweet_url:
             if request.headers.get("HX-Request"):
@@ -295,14 +276,14 @@ def index():
             return jsonify(error="Please enter a tweet URL"), 400
 
         job_id = uuid.uuid4().hex[:8]
-        executor.submit(process_job, tweet_url, type, layout, background, cropped, job_id)
+        executor.submit(process_job, tweet_url, type, layout, show_replied_to_tweet, background, cropped, job_id)
 
         if request.headers.get("HX-Request"):
             resp = make_response(render_template("partials/queued.html", job_id=job_id))
             resp.headers["Cache-Control"] = "no-store"
             return resp
 
-        return jsonify(job_id=job_id, type=type, layout=layout, background=background, cropped=cropped), 202
+        return jsonify(job_id=job_id, type=type, layout=layout, show_replied_to_tweet=show_replied_to_tweet, background=background, cropped=cropped), 202
 
     return render_template("index.html")
 
