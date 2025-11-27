@@ -78,6 +78,7 @@ def extract_tweet_card(input_path, output_path=None, tweet_type="video", backgro
 
         cv2.imwrite(output_path, rgba_tweet)
 
+    print(f"Tweet card saved to: {output_path}")
     return output_path
 
 
@@ -117,7 +118,7 @@ def pad_photo(input_path, background, output_path=None):
         output_path = f"{base_name}_padded.jpg"
 
     canvas.save(output_path)
-    print(f"✅ Padded image saved to: {output_path}")
+    print(f"Padded image saved to: {output_path}")
 
 
 if __name__ == "__main__":
@@ -131,10 +132,13 @@ if __name__ == "__main__":
     output_image_path = os.path.abspath(sys.argv[4]) if len(sys.argv) > 4 else os.path.abspath(sys.argv[3])
 
     if crop_action == "tweet_card":
+        print("Extracting tweet card...")
         extract_tweet_card(input_image_path, output_image_path, "video", background_type)
     elif crop_action == "photo_card":
+        print("Extracting photo card...")
         extract_tweet_card(input_image_path, output_image_path, "photo")
     elif crop_action == "pad_photo":
+        print("Padding photo...")
         pad_photo(input_image_path, background_type, output_image_path)
     else:
         print("Invalid crop action.")
