@@ -185,7 +185,7 @@ def call_handler(job_id: str, tweet_url: str, layout: str, background: str, crop
     r.raise_for_status()
     return r.json()["id"], public_url
 
-def process_job(tweet_url: str, type: str, layout: str, show_replied_to_tweet: str, background: str, cropped: bool, job_id: str):
+def process_job(tweet_url: str, type: str, layout: str, only_video: str, show_replied_to_tweet: str, hide_quoted_tweet: str, background: str, cropped: bool, job_id: str):
     tweet_id = tweet_url.rstrip("/").split("/")[-1].split("?")[0]
     img_raw = os.path.join(downloads_dir, f"{tweet_id}.png")
     img_cropped = os.path.join(downloads_dir, f"{tweet_id}_cropped.png")
@@ -199,7 +199,9 @@ def process_job(tweet_url: str, type: str, layout: str, show_replied_to_tweet: s
         "video_duration": 0,
         "type": type,
         "layout": layout,
+        "only_video": only_video,
         "show_replied_to_tweet": show_replied_to_tweet,
+        "hide_quoted_tweet": hide_quoted_tweet,
         "background": background,
         "cropped": cropped,
     })
@@ -229,7 +231,7 @@ def process_job(tweet_url: str, type: str, layout: str, show_replied_to_tweet: s
             "video_duration": 0,
             "type": "photo",
         })
-        subprocess.run(["python", screenshot_py, "photo", show_replied_to_tweet, background, tweet_url, img_raw], check=True)
+        subprocess.run(["python", screenshot_py, "photo", show_replied_to_tweet, hide_quoted_tweet, background, tweet_url, img_raw], check=True)
 
         write_progress(job_id, {
             "status": "Cropping image...",
@@ -263,9 +265,11 @@ def index():
     if request.method == "POST":
         tweet_url = request.form.get("url")
         type = request.form.get("type")
-        layout = request.form.get("layout")
-        background = request.form.get("background-photo") if type == "photo" else request.form.get("background-video")
+        only_video = request.form.get("only_video") if type == "video" else 'false'
+        layout = request.form.get("layout") if only_video == 'false' else 'video_only'
         show_replied_to_tweet = request.form.get("show_replied_to_tweet") if type == "photo" else 'false'
+        hide_quoted_tweet = request.form.get("hide_quoted_tweet") if type == "photo" or (type == "video" and only_video == 'false') else 'false'
+        background = request.form.get("background-photo") if type == "photo" else request.form.get("background-video")
         cropped = request.form.get("cropped") == "1"
 
         if not tweet_url:
@@ -276,14 +280,15 @@ def index():
             return jsonify(error="Please enter a tweet URL"), 400
 
         job_id = uuid.uuid4().hex[:8]
-        executor.submit(process_job, tweet_url, type, layout, show_replied_to_tweet, background, cropped, job_id)
+        executor.submit(process_job, tweet_url, type, layout, only_video, show_replied_to_tweet, hide_quoted_tweet, background, cropped, job_id)
 
         if request.headers.get("HX-Request"):
             resp = make_response(render_template("partials/queued.html", job_id=job_id))
             resp.headers["Cache-Control"] = "no-store"
             return resp
 
-        return jsonify(job_id=job_id, type=type, layout=layout, show_replied_to_tweet=show_replied_to_tweet, background=background, cropped=cropped), 202
+        return jsonify(job_id=job_id, type=type, layout=layout, only_video=only_video, show_replied_to_tweet=show_replied_to_tweet,
+                       hide_quoted_tweet=hide_quoted_tweet, background=background, cropped=cropped), 202
 
     return render_template("index.html")
 

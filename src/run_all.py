@@ -59,6 +59,7 @@ def run(type: str, tweet_url: str, background_type, reel_layout = None, crop = N
         sys.exit(1)
 
 if __name__ == "__main__":
+    # Doesn't work with show_replied_to_tweet for now
     if len(sys.argv) < 4:
         print("Usage: python run_all.py <result_type> <background_type> [<reel_layout>] [<crop>] <tweet_url>")
         sys.exit(1)
