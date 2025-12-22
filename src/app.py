@@ -164,7 +164,7 @@ def load_progress(job_id: str):
     except Exception:
         return {}
 
-def call_handler(job_id: str, tweet_url: str, layout: str, background: str, cropped: bool):
+def call_handler(job_id: str, tweet_url: str, only_video: str, layout: str, hide_quoted_tweet: str, background: str, cropped: bool):
     upload_url, public_url, obj = _signed_urls(tweet_url.split("/")[-1], layout, background, cropped)
 
     data = {
@@ -172,7 +172,9 @@ def call_handler(job_id: str, tweet_url: str, layout: str, background: str, crop
             "upload_url": upload_url,
             "public_url": public_url,
             "tweet_url": tweet_url,
+            "only_video": only_video,
             "layout": layout,
+            "hide_quoted_tweet": hide_quoted_tweet,
             "background": background,
             "cropped": cropped
             },
@@ -209,7 +211,7 @@ def process_job(tweet_url: str, type: str, layout: str, only_video: str, show_re
     if type == "video":
         try:
             logging.info("Starting VIDEO job %s", job_id)
-            result_id, public_url = call_handler(job_id, tweet_url, layout, background, cropped)
+            result_id, public_url = call_handler(job_id, tweet_url, only_video, layout, hide_quoted_tweet, background, cropped)
             logging.info("RunPod job %s enqueued url=%s", result_id, public_url)
             write_progress(job_id, {
                 "status": "Job queued",
