@@ -130,7 +130,8 @@ def _wait_for_runpod(result_id: str, public_url: str, job_id: str):
         else:
             if output:
                 start_time = load_progress(job_id).get("start_time", time.time())
-                time_left = int(output.split("Estimated time:")[-1].strip().split(" ")[0]) - int(time.time() - start_time)
+                estimated_time = output.split("Estimated time:")[-1].strip().split(" ")[0]
+                time_left = max(int(float(estimated_time)) - int(time.time() - start_time), 0)
                 write_progress(job_id, {
                     "status": f"Processing video…",
                     "start_time": start_time,
@@ -345,12 +346,12 @@ def progress_frag():
     else:
         base_percentage = 5
 
-    elapsed   = max(time.time() - start_time, 0)
+    elapsed = max(time.time() - start_time, 0)
     if time_left != "~" and int(time_left) > 0:
         est_total = elapsed + int(time_left)
     else:
         est_total = 25
-    percent   = base_percentage + min(int((elapsed / est_total) * 100), 95 - base_percentage)
+    percent = base_percentage + min(int((elapsed / est_total) * 100), 95 - base_percentage)
 
     redirect_url = data.get("redirect_url")
     if redirect_url:
