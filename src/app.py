@@ -131,7 +131,7 @@ def _wait_for_runpod(result_id: str, public_url: str, job_id: str):
             if output:
                 start_time = load_progress(job_id).get("start_time", time.time())
                 estimated_time = output.split("Estimated time:")[-1].strip().split(" ")[0]
-                time_left = max(int(round((float(estimated_time)) - int(time.time() - start_time))), 0)
+                time_left = int(round((float(estimated_time)) - int(time.time() - start_time)))
                 write_progress(job_id, {
                     "status": f"Processing video…",
                     "start_time": start_time,
