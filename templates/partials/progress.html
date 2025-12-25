@@ -15,6 +15,17 @@
         {% else %}
           {{ seconds }}s
         {% endif %}
+      {% elif time_left is number and time_left <= 0 %}
+        {% set remainder = (time_left * -1) % 4 %}
+        {% if remainder == 0 %}
+          Please wait
+        {% elif remainder == 1 %}
+          Please wait.
+        {% elif remainder == 2 %}
+          Please wait..
+        {% else %}
+          Please wait...
+        {% endif %}
       {% else %}
         {{ time_left }}
       {% endif %}
