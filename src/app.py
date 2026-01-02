@@ -271,7 +271,12 @@ def index():
         only_video = request.form.get("only_video") if type == "video" else 'false'
         layout = request.form.get("layout") if only_video == 'false' else 'video_only'
         show_replied_to_tweet = request.form.get("show_replied_to_tweet") if type == "photo" else 'false'
-        hide_quoted_tweet = request.form.get("hide_quoted_tweet") if type == "photo" or (type == "video" and only_video == 'false') else 'false'
+        if type == "photo":
+            hide_quoted_tweet = request.form.get("hide_quoted_tweet_photo", "false")
+        elif type == "video" and only_video == 'false':
+            hide_quoted_tweet = request.form.get("hide_quoted_tweet_video", "false")
+        else:
+            hide_quoted_tweet = 'false'
         background = request.form.get("background-photo") if type == "photo" else request.form.get("background-video")
         cropped = request.form.get("cropped") == "1"
 
