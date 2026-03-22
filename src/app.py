@@ -13,6 +13,7 @@ from google import auth
 from flask import Flask, jsonify, render_template, request, send_file, make_response, session, redirect, url_for
 from authlib.integrations.flask_client import OAuth
 from flask_migrate import Migrate
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -50,6 +51,7 @@ video_dl_py = os.path.join(src_dir, "video_dl.py")
 assemble_py = os.path.join(src_dir, "assemble_reel.py")
 
 app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.secret_key = os.environ.get("SECRET_KEY")
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", f"sqlite:///{os.path.join(base_dir, 'app.db')}")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
