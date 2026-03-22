@@ -4,7 +4,6 @@ __pycache__/
 *.pyc
 .vscode
 *.mp4
-*.png
 !static/*.png
 node_modules/
 app.db
