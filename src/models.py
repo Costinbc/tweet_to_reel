@@ -25,7 +25,7 @@ class User(db.Model):
 class Job(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     job_uuid = db.Column(db.String(8), unique=True, index=True)
-    user_sub = db.Column(db.String(255), db.ForeignKey("user.sub"), index=True, nullable=False)
+    user_sub = db.Column(db.String(255), db.ForeignKey("user.sub"), index=True, nullable=True)
     tweet_url = db.Column(db.Text)
     kind = db.Column(db.String(20))
     status = db.Column(db.String(20))

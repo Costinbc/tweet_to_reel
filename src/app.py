@@ -411,7 +411,6 @@ def process_job(tweet_url: str, type: str, layout: str, only_video: str, show_re
 # ---------------------------------------------------------------------------
 
 @app.route("/", methods=["GET", "POST"])
-@login_required
 def index():
     user = current_user()
     if request.method == "POST":
@@ -437,7 +436,7 @@ def index():
             return jsonify(error="Please enter a tweet URL"), 400
 
         job_id = uuid.uuid4().hex[:8]
-        executor.submit(process_job, tweet_url, type, layout, only_video, show_replied_to_tweet, hide_quoted_tweet, background, cropped, job_id, user.sub)
+        executor.submit(process_job, tweet_url, type, layout, only_video, show_replied_to_tweet, hide_quoted_tweet, background, cropped, job_id, user.sub if user else None)
 
         if request.headers.get("HX-Request"):
             resp = make_response(render_template("partials/queued.html", job_id=job_id))
@@ -451,20 +450,17 @@ def index():
 
 
 @app.route("/result/reel/<job_id>")
-@login_required
 def reel_result(job_id):
     data = load_progress(job_id)
     return render_template("download_reel.html", gcs_url=data.get("public_url"))
 
 
 @app.route("/result/photo/<job_id>")
-@login_required
 def photo_result(job_id):
     return render_template("download_photo.html", filename=f"{job_id}_photo.png")
 
 
 @app.route("/download/<filename>")
-@login_required
 def download(filename):
     return send_file(os.path.join(results_dir, filename), as_attachment=True)
 
