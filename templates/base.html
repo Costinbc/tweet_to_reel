@@ -15,11 +15,23 @@
       <header class="bg-white border-b">
         <div class="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between">
           <a href="/" class="font-semibold">Tweet to Reel</a>
-          <nav class="flex gap-4 text-sm">
+          <nav class="flex gap-4 text-sm items-center">
             <a href="/" class="hover:underline">Home</a>
             <a href="/instructions" class="hover:underline">Instructions</a>
 <!--            <a href="/tos" class="hover:underline">Terms</a>-->
 <!--            <a href="/privacy" class="hover:underline">Privacy</a>-->
+            {% if session.user %}
+              <a href="/settings" class="hover:underline">Settings</a>
+              <div class="flex items-center gap-2 ml-2">
+                {% if session.user.picture %}
+                  <img src="{{ session.user.picture }}" class="w-7 h-7 rounded-full" alt="avatar" />
+                {% endif %}
+                <span class="text-gray-600">{{ session.user.name or session.user.email }}</span>
+                <a href="/logout" class="text-gray-400 hover:text-gray-700">Sign out</a>
+              </div>
+            {% else %}
+              <a href="/login" class="px-3 py-1 rounded-lg bg-black text-white text-sm">Sign in</a>
+            {% endif %}
           </nav>
         </div>
       </header>

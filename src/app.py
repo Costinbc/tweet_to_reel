@@ -6,10 +6,13 @@ import uuid
 import datetime
 import requests
 import logging
+from functools import wraps
 from concurrent.futures import ThreadPoolExecutor
 from google.cloud import storage
 from google import auth
-from flask import Flask, jsonify, render_template, request, send_file, make_response
+from flask import Flask, jsonify, render_template, request, send_file, make_response, session, redirect, url_for
+from authlib.integrations.flask_client import OAuth
+from flask_migrate import Migrate
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -30,6 +33,15 @@ os.makedirs(results_dir, exist_ok=True)
 BUCKET = os.environ.get("STORAGE_BUCKET_NAME")
 ENDPOINT_ID = os.environ.get("RUNPOD_ENDPOINT_ID")
 RUNPOD_API_KEY = os.environ.get("RUNPOD_API_KEY")
+AUTH0_DOMAIN = os.environ.get("AUTH0_DOMAIN")
+AUTH0_CLIENT_ID = os.environ.get("AUTH0_CLIENT_ID")
+AUTH0_CLIENT_SECRET = os.environ.get("AUTH0_CLIENT_SECRET")
+
+for name in ("STORAGE_BUCKET_NAME", "RUNPOD_ENDPOINT_ID", "RUNPOD_API_KEY",
+             "AUTH0_DOMAIN", "AUTH0_CLIENT_ID", "AUTH0_CLIENT_SECRET", "SECRET_KEY"):
+    if not os.getenv(name):
+        raise RuntimeError(f"Missing env var {name}")
+
 storage_client = storage.Client()
 
 screenshot_py = os.path.join(src_dir, "screenshot_ors.py")
@@ -38,6 +50,22 @@ video_dl_py = os.path.join(src_dir, "video_dl.py")
 assemble_py = os.path.join(src_dir, "assemble_reel.py")
 
 app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
+app.secret_key = os.environ.get("SECRET_KEY")
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", f"sqlite:///{os.path.join(base_dir, 'app.db')}")
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+from models import db, User, Job
+db.init_app(app)
+migrate = Migrate(app, db)
+
+oauth = OAuth(app)
+auth0 = oauth.register(
+    "auth0",
+    client_id=AUTH0_CLIENT_ID,
+    client_secret=AUTH0_CLIENT_SECRET,
+    client_kwargs={"scope": "openid profile email"},
+    server_metadata_url=f"https://{AUTH0_DOMAIN}/.well-known/openid-configuration",
+)
 
 executor = ThreadPoolExecutor(max_workers=4)
 
@@ -50,9 +78,96 @@ step_weights = {
     "done": 1,
 }
 
-for name in ("STORAGE_BUCKET_NAME", "RUNPOD_ENDPOINT_ID", "RUNPOD_API_KEY"):
-    if not os.getenv(name):
-        raise RuntimeError(f"Missing env var {name}")
+
+# ---------------------------------------------------------------------------
+# Auth helpers
+# ---------------------------------------------------------------------------
+
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if "user" not in session:
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return decorated
+
+
+def current_user() -> User | None:
+    user_info = session.get("user")
+    if not user_info:
+        return None
+    return db.session.execute(
+        db.select(User).filter_by(sub=user_info["sub"])
+    ).scalar_one_or_none()
+
+
+# ---------------------------------------------------------------------------
+# Auth routes
+# ---------------------------------------------------------------------------
+
+@app.route("/login")
+def login():
+    return auth0.authorize_redirect(redirect_uri=url_for("callback", _external=True))
+
+
+@app.route("/callback")
+def callback():
+    token = auth0.authorize_access_token()
+    user_info = token["userinfo"]
+    session["user"] = user_info
+
+    user = db.session.execute(
+        db.select(User).filter_by(sub=user_info["sub"])
+    ).scalar_one_or_none()
+
+    if not user:
+        user = User(
+            sub=user_info["sub"],
+            email=user_info.get("email"),
+            name=user_info.get("name"),
+            picture=user_info.get("picture"),
+        )
+        db.session.add(user)
+    else:
+        user.email = user_info.get("email")
+        user.name = user_info.get("name")
+        user.picture = user_info.get("picture")
+        user.last_login_at = datetime.datetime.utcnow()
+
+    db.session.commit()
+    return redirect(url_for("index"))
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(
+        f"https://{AUTH0_DOMAIN}/v2/logout"
+        f"?returnTo={url_for('index', _external=True)}"
+        f"&client_id={AUTH0_CLIENT_ID}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Settings
+# ---------------------------------------------------------------------------
+
+@app.route("/settings", methods=["GET", "POST"])
+@login_required
+def settings():
+    user = current_user()
+    if request.method == "POST":
+        user.default_output_type = request.form.get("default_output_type", "photo")
+        user.default_background = request.form.get("default_background", "white")
+        user.default_layout = request.form.get("default_layout", "video_bottom")
+        db.session.commit()
+        return redirect(url_for("settings"))
+    return render_template("settings.html", user=user)
+
+
+# ---------------------------------------------------------------------------
+# GCS / RunPod helpers
+# ---------------------------------------------------------------------------
 
 def _signed_urls(tweet_id: str, layout: str, background: str, cropped: bool):
     reel_cropped = "cropped" if cropped else "uncropped"
@@ -67,13 +182,10 @@ def _signed_urls(tweet_id: str, layout: str, background: str, cropped: bool):
         "https://www.googleapis.com/auth/iam"
     ]
 
-    credentials, project = auth.default(
-        scopes=SCOPES,
-    )
+    credentials, project = auth.default(scopes=SCOPES)
     credentials.refresh(auth.transport.requests.Request())
 
     storage_client = storage.Client(credentials=credentials)
-
     bucket = storage_client.bucket(BUCKET)
     blob = bucket.blob(obj)
 
@@ -96,6 +208,7 @@ def _signed_urls(tweet_id: str, layout: str, background: str, cropped: bool):
     )
 
     return upload_url, public_url, obj
+
 
 def _wait_for_runpod(result_id: str, public_url: str, job_id: str):
     status_url = f"https://api.runpod.ai/v2/{ENDPOINT_ID}/status/{result_id}"
@@ -165,6 +278,7 @@ def load_progress(job_id: str):
     except Exception:
         return {}
 
+
 def call_handler(job_id: str, tweet_url: str, only_video: str, layout: str, hide_quoted_tweet: str, background: str, cropped: bool):
     upload_url, public_url, obj = _signed_urls(tweet_url.split("/")[-1], layout, background, cropped)
 
@@ -188,7 +302,8 @@ def call_handler(job_id: str, tweet_url: str, only_video: str, layout: str, hide
     r.raise_for_status()
     return r.json()["id"], public_url
 
-def process_job(tweet_url: str, type: str, layout: str, only_video: str, show_replied_to_tweet: str, hide_quoted_tweet: str, background: str, cropped: bool, job_id: str):
+
+def process_job(tweet_url: str, type: str, layout: str, only_video: str, show_replied_to_tweet: str, hide_quoted_tweet: str, background: str, cropped: bool, job_id: str, user_sub: str):
     tweet_id = tweet_url.rstrip("/").split("/")[-1].split("?")[0]
     img_raw = os.path.join(downloads_dir, f"{tweet_id}.png")
     img_cropped = os.path.join(downloads_dir, f"{tweet_id}_cropped.png")
@@ -209,6 +324,17 @@ def process_job(tweet_url: str, type: str, layout: str, only_video: str, show_re
         "cropped": cropped,
     })
 
+    with app.app_context():
+        db_job = Job(
+            job_uuid=job_id,
+            user_sub=user_sub,
+            tweet_url=tweet_url,
+            kind=type,
+            status="processing",
+        )
+        db.session.add(db_job)
+        db.session.commit()
+
     if type == "video":
         try:
             logging.info("Starting VIDEO job %s", job_id)
@@ -219,12 +345,23 @@ def process_job(tweet_url: str, type: str, layout: str, only_video: str, show_re
                 "step": "video",
             })
             _wait_for_runpod(result_id, public_url, job_id)
+            with app.app_context():
+                j = db.session.execute(db.select(Job).filter_by(job_uuid=job_id)).scalar_one_or_none()
+                if j:
+                    j.status = "done"
+                    j.result_url = public_url
+                    db.session.commit()
         except Exception as e:
             logging.exception("Job %s failed: %s", job_id, e)
             write_progress(job_id, {
                 "status": "ERROR: " + str(e),
                 "step": "error"
             })
+            with app.app_context():
+                j = db.session.execute(db.select(Job).filter_by(job_uuid=job_id)).scalar_one_or_none()
+                if j:
+                    j.status = "error"
+                    db.session.commit()
 
     else:
         write_progress(job_id, {
@@ -262,9 +399,21 @@ def process_job(tweet_url: str, type: str, layout: str, only_video: str, show_re
             "type": "photo",
             "redirect_url": f"/result/photo/{job_id}",
         })
+        with app.app_context():
+            j = db.session.execute(db.select(Job).filter_by(job_uuid=job_id)).scalar_one_or_none()
+            if j:
+                j.status = "done"
+                db.session.commit()
+
+
+# ---------------------------------------------------------------------------
+# Main routes
+# ---------------------------------------------------------------------------
 
 @app.route("/", methods=["GET", "POST"])
+@login_required
 def index():
+    user = current_user()
     if request.method == "POST":
         tweet_url = request.form.get("url")
         type = request.form.get("type")
@@ -282,13 +431,13 @@ def index():
 
         if not tweet_url:
             if request.headers.get("HX-Request"):
-                resp = make_response(render_template("index.html", error="Please enter a tweet URL"))
+                resp = make_response(render_template("index.html", error="Please enter a tweet URL", user=user))
                 resp.headers["Cache-Control"] = "no-store"
                 return resp
             return jsonify(error="Please enter a tweet URL"), 400
 
         job_id = uuid.uuid4().hex[:8]
-        executor.submit(process_job, tweet_url, type, layout, only_video, show_replied_to_tweet, hide_quoted_tweet, background, cropped, job_id)
+        executor.submit(process_job, tweet_url, type, layout, only_video, show_replied_to_tweet, hide_quoted_tweet, background, cropped, job_id, user.sub)
 
         if request.headers.get("HX-Request"):
             resp = make_response(render_template("partials/queued.html", job_id=job_id))
@@ -298,24 +447,32 @@ def index():
         return jsonify(job_id=job_id, type=type, layout=layout, only_video=only_video, show_replied_to_tweet=show_replied_to_tweet,
                        hide_quoted_tweet=hide_quoted_tweet, background=background, cropped=cropped), 202
 
-    return render_template("index.html")
+    return render_template("index.html", user=user)
+
 
 @app.route("/result/reel/<job_id>")
+@login_required
 def reel_result(job_id):
     data = load_progress(job_id)
     return render_template("download_reel.html", gcs_url=data.get("public_url"))
 
+
 @app.route("/result/photo/<job_id>")
+@login_required
 def photo_result(job_id):
     return render_template("download_photo.html", filename=f"{job_id}_photo.png")
 
+
 @app.route("/download/<filename>")
+@login_required
 def download(filename):
     return send_file(os.path.join(results_dir, filename), as_attachment=True)
+
 
 @app.route("/health")
 def health():
     return "ok", 200
+
 
 @app.route("/progress-frag")
 def progress_frag():
@@ -373,15 +530,18 @@ def progress_frag():
         show_preview=True
     )))
 
+
 @app.route("/instructions")
 def how_it_works():
     return render_template("instructions.html")
+
 
 @app.after_request
 def add_cache_headers(resp):
     if request.path.startswith("/static/") and "styles.css" in request.path:
         resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
     return resp
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))

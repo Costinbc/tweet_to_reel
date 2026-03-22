@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Settings – Tweet to Reel{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto grid gap-6">
+  <section class="rounded-2xl bg-white shadow p-6">
+    <h1 class="text-xl font-semibold mb-1">Settings</h1>
+    <p class="text-sm text-gray-500 mb-6">These defaults pre-fill the form on each new job.</p>
+
+    <form method="POST" action="/settings" class="grid gap-5">
+
+      <label class="grid gap-1">
+        <span class="text-sm font-medium">Default output type</span>
+        <select name="default_output_type" class="border rounded-lg px-3 py-2">
+          <option value="photo" {% if user.default_output_type == 'photo' %}selected{% endif %}>Photo</option>
+          <option value="video" {% if user.default_output_type == 'video' %}selected{% endif %}>Video</option>
+        </select>
+      </label>
+
+      <label class="grid gap-1">
+        <span class="text-sm font-medium">Default background</span>
+        <select name="default_background" class="border rounded-lg px-3 py-2">
+          <option value="white" {% if user.default_background == 'white' %}selected{% endif %}>White</option>
+          <option value="black" {% if user.default_background == 'black' %}selected{% endif %}>Black</option>
+          <option value="blur"  {% if user.default_background == 'blur'  %}selected{% endif %}>Blur</option>
+        </select>
+      </label>
+
+      <label class="grid gap-1">
+        <span class="text-sm font-medium">Default video layout</span>
+        <select name="default_layout" class="border rounded-lg px-3 py-2">
+          <option value="video_bottom" {% if user.default_layout == 'video_bottom' %}selected{% endif %}>Video bottom – Tweet top</option>
+          <option value="video_top"    {% if user.default_layout == 'video_top'    %}selected{% endif %}>Video top – Tweet bottom</option>
+        </select>
+      </label>
+
+      <button type="submit" class="px-4 py-2 rounded-lg bg-black text-white w-fit">Save</button>
+    </form>
+  </section>
+
+  <section class="rounded-2xl bg-white shadow p-6">
+    <h2 class="text-base font-semibold mb-3">Account</h2>
+    <div class="flex items-center gap-3">
+      {% if user.picture %}
+        <img src="{{ user.picture }}" class="w-10 h-10 rounded-full" alt="avatar" />
+      {% endif %}
+      <div>
+        <p class="font-medium text-sm">{{ user.name }}</p>
+        <p class="text-xs text-gray-500">{{ user.email }}</p>
+      </div>
+    </div>
+    <p class="mt-4 text-xs text-gray-500">Plan: <span class="font-medium capitalize">{{ user.plan }}</span></p>
+  </section>
+</div>
+{% endblock %}

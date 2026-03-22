@@ -1,8 +1,10 @@
 .env
-.venv
+venv
 __pycache__/
 *.pyc
 .vscode
-.mp4
-.png
+*.mp4
+*.png
 node_modules/
+app.db
+progress*
