@@ -28,7 +28,7 @@ RUN mkdir -p /app/downloads /app/results && chown -R appuser:appuser /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app \
+    PYTHONPATH=/app:/app/src \
     PORT=8080
 
 USER appuser
