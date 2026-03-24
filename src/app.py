@@ -81,9 +81,6 @@ step_weights = {
 }
 
 
-# ---------------------------------------------------------------------------
-# Auth helpers
-# ---------------------------------------------------------------------------
 
 def login_required(f):
     @wraps(f)
@@ -103,9 +100,6 @@ def current_user() -> User | None:
     ).scalar_one_or_none()
 
 
-# ---------------------------------------------------------------------------
-# Auth routes
-# ---------------------------------------------------------------------------
 
 @app.route("/login")
 def login():
@@ -150,10 +144,6 @@ def logout():
     )
 
 
-# ---------------------------------------------------------------------------
-# Settings
-# ---------------------------------------------------------------------------
-
 @app.route("/settings", methods=["GET", "POST"])
 @login_required
 def settings():
@@ -166,10 +156,6 @@ def settings():
         return redirect(url_for("settings"))
     return render_template("settings.html", user=user)
 
-
-# ---------------------------------------------------------------------------
-# GCS / RunPod helpers
-# ---------------------------------------------------------------------------
 
 def _signed_urls(tweet_id: str, layout: str, background: str, cropped: bool):
     reel_cropped = "cropped" if cropped else "uncropped"
@@ -281,7 +267,7 @@ def load_progress(job_id: str):
         return {}
 
 
-def call_handler(job_id: str, tweet_url: str, only_video: str, layout: str, hide_quoted_tweet: str, background: str, cropped: bool):
+def call_handler(job_id: str, tweet_url: str, only_video: str, layout: str, hide_quoted_tweet: str, background: str, cropped: bool, flipped: bool):
     upload_url, public_url, obj = _signed_urls(tweet_url.split("/")[-1], layout, background, cropped)
 
     data = {
@@ -293,7 +279,8 @@ def call_handler(job_id: str, tweet_url: str, only_video: str, layout: str, hide
             "layout": layout,
             "hide_quoted_tweet": hide_quoted_tweet,
             "background": background,
-            "cropped": cropped
+            "cropped": cropped,
+            "flipped": flipped,
             },
     }
 
@@ -305,7 +292,7 @@ def call_handler(job_id: str, tweet_url: str, only_video: str, layout: str, hide
     return r.json()["id"], public_url
 
 
-def process_job(tweet_url: str, type: str, layout: str, only_video: str, show_replied_to_tweet: str, hide_quoted_tweet: str, background: str, cropped: bool, job_id: str, user_sub: str):
+def process_job(tweet_url: str, type: str, layout: str, only_video: str, show_replied_to_tweet: str, hide_quoted_tweet: str, background: str, cropped: bool, flipped: bool, job_id: str, user_sub: str):
     tweet_id = tweet_url.rstrip("/").split("/")[-1].split("?")[0]
     img_raw = os.path.join(downloads_dir, f"{tweet_id}.png")
     img_cropped = os.path.join(downloads_dir, f"{tweet_id}_cropped.png")
@@ -324,6 +311,7 @@ def process_job(tweet_url: str, type: str, layout: str, only_video: str, show_re
         "hide_quoted_tweet": hide_quoted_tweet,
         "background": background,
         "cropped": cropped,
+        "flipped": flipped,
     })
 
     with app.app_context():
@@ -340,7 +328,7 @@ def process_job(tweet_url: str, type: str, layout: str, only_video: str, show_re
     if type == "video":
         try:
             logging.info("Starting VIDEO job %s", job_id)
-            result_id, public_url = call_handler(job_id, tweet_url, only_video, layout, hide_quoted_tweet, background, cropped)
+            result_id, public_url = call_handler(job_id, tweet_url, only_video, layout, hide_quoted_tweet, background, cropped, flipped)
             logging.info("RunPod job %s enqueued url=%s", result_id, public_url)
             write_progress(job_id, {
                 "status": "Job queued",
@@ -408,10 +396,6 @@ def process_job(tweet_url: str, type: str, layout: str, only_video: str, show_re
                 db.session.commit()
 
 
-# ---------------------------------------------------------------------------
-# Main routes
-# ---------------------------------------------------------------------------
-
 @app.route("/", methods=["GET", "POST"])
 def index():
     user = current_user()
@@ -429,6 +413,7 @@ def index():
             hide_quoted_tweet = 'false'
         background = request.form.get("background-photo") if type == "photo" else request.form.get("background-video")
         cropped = request.form.get("cropped") == "1"
+        flipped = request.form.get("flipped") == "1"
 
         if not tweet_url:
             if request.headers.get("HX-Request"):
@@ -438,7 +423,7 @@ def index():
             return jsonify(error="Please enter a tweet URL"), 400
 
         job_id = uuid.uuid4().hex[:8]
-        executor.submit(process_job, tweet_url, type, layout, only_video, show_replied_to_tweet, hide_quoted_tweet, background, cropped, job_id, user.sub if user else None)
+        executor.submit(process_job, tweet_url, type, layout, only_video, show_replied_to_tweet, hide_quoted_tweet, background, cropped, flipped, job_id, user.sub if user else None)
 
         if request.headers.get("HX-Request"):
             resp = make_response(render_template("partials/queued.html", job_id=job_id))

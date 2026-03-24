@@ -14,7 +14,6 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login_at = db.Column(db.DateTime)
 
-    # Per-user default settings
     default_output_type = db.Column(db.String(20), default="photo")
     default_background = db.Column(db.String(20), default="white")
     default_layout = db.Column(db.String(20), default="video_bottom")
